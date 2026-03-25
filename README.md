@@ -1,22 +1,21 @@
 ﻿# SOL5M Legging (Paper-First)
 
-Projeto base para estrategia de arbitragem/legging em SOL5M com foco em:
-- simulacao e replay antes de qualquer live
-- controle de risco e rastreabilidade
-- evolucao incremental por STEPs
+Projeto novo focado em estrategia de arbitragem/legging para mercado SOL5M, com desenvolvimento em etapas, validacao por testes e zero execucao real nesta fase.
 
-## Estrutura inicial
-- `src/core`: modelos e utilitarios centrais
-- `src/strategy`: logica de estrategia e state machine
-- `src/runtime`: motores de execucao/replay
-- `src/io`: entrada/saida de dados
-- `scripts`: CLIs e automacoes
-- `tests`: testes automatizados
-- `configs`: configuracoes versionadas
-- `logs`, `reports`: artefatos operacionais
+## Objetivo
+- Construir stack paper-first para avaliar viabilidade de legging em SOL5M.
+- Controlar risco com guardrails explicitos.
+- Evoluir por STEPs com entregas verificaveis.
 
-## Validacao (STEP 1)
-```bash
-python -m compileall -q src scripts tests
-pytest -q
-```
+## Estrutura
+- `docs/`: especificacoes e guias operacionais
+- `src/core`: config, reason codes e utilitarios centrais
+- `src/strategy`: hedge math e state machine
+- `src/runtime`: replay/simulacao
+- `src/io`: formatos e persistencia
+- `scripts/`: entrypoints de validacao e replay
+- `tests/`: suite de testes
+- `configs/`: configuracoes paper
+
+## Documentacao
+Ver `docs/INDEX.md` para lista completa de documentos do projeto.

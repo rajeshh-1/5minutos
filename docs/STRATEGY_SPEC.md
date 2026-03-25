@@ -1,14 +1,14 @@
-﻿# Strategy Spec (STEP 1)
+﻿# Strategy Spec (SOL5M)
 
 ## Escopo
-Estrategia de legging para mercado SOL5M em modo paper.
+Estrategia de legging para mercado SOL5M em modo paper-first.
 
-## Premissas
-- sem execucao real nesta fase
-- um trade por mercado por vez
-- foco em seguranca e rastreabilidade
+## Objetivos tecnicos
+- Entrar apenas quando alvo de lucro atender threshold configurado.
+- Revalidar condicoes antes da segunda perna.
+- Encerrar por hedge completo ou unwind controlado.
 
-## Proximas entregas
-- matematica de hedge com alvo minimo de lucro
-- state machine de legging
-- replay engine por CSV
+## Fora de escopo nesta fase
+- Execucao real de ordens.
+- Integracao com credenciais de corretora.
+- Automacao live sem gates de seguranca.

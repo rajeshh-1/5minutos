@@ -1,16 +1,22 @@
-﻿# Architecture (STEP 1)
+﻿# Architecture
 
 ## Objetivo
-Base limpa para estrategia SOL5M em modo paper-first, sem envio real de ordens.
+Arquitetura simples, testavel e rastreavel para estrategia SOL5M sem envio real de ordens.
 
-## Camadas
-- `core`: contratos de dados, config, reason codes
-- `strategy`: decisao de entrada/hedge/unwind
-- `runtime`: orquestracao de replay/simulacao
-- `io`: leitura/escrita de fontes e relatorios
+## Modulos
+- `src/core`
+  - config e validacoes
+  - reason codes padronizados
+- `src/strategy`
+  - hedge math
+  - state machine de legging
+- `src/runtime`
+  - motor de replay e simulacao
+- `src/io`
+  - leitura CSV e escrita de relatorios
 
 ## Principios
-- baixo acoplamento
-- funcoes pequenas e testaveis
-- logs explicitos
-- workflow orientado a testes
+- Funcoes pequenas e coesas.
+- Sem segredos hardcoded.
+- Sem side effects ocultos.
+- Logs objetivos por decisao.
