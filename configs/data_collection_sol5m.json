@@ -1,0 +1,25 @@
+{
+  "source": "polymarket",
+  "market_folder": "sol5m",
+  "market": {
+    "market_key_prefix": "SOL5M",
+    "coin": "sol",
+    "bucket_min": 5,
+    "slug_static": "",
+    "slug_prefix": "sol-updown-5m-",
+    "labels": {
+      "up": ["up", "yes"],
+      "down": ["down", "no"]
+    }
+  },
+  "endpoints": {
+    "gamma_host": "https://gamma-api.polymarket.com",
+    "clob_host": "https://clob.polymarket.com",
+    "data_api_host": "https://data-api.polymarket.com"
+  },
+  "request": {
+    "timeout_sec": 8.0,
+    "retries": 2,
+    "backoff_sec": 0.25
+  }
+}
