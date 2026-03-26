@@ -394,6 +394,8 @@ class MarketDataCollector:
         return [row for row in response if isinstance(row, dict)]
 
     def _normalize_trade(self, raw: dict[str, Any], *, now_utc: datetime) -> dict[str, Any] | None:
+        collector_ts_utc = iso_utc(now_utc)
+        collector_cycle_id = str(int(now_utc.timestamp() * 1000))
         ts_raw = raw.get("timestamp")
         ts_dt: datetime | None = None
         if isinstance(ts_raw, (int, float)):
@@ -432,17 +434,28 @@ class MarketDataCollector:
 
         return {
             "timestamp_utc": iso_utc(ts_dt),
+            "collector_ts_utc": collector_ts_utc,
+            "collector_cycle_id": collector_cycle_id,
             "market_key": self.market.market_key,
+            "condition_id": self.market.condition_id,
+            "market_slug": self.market.slug,
+            "market_close_utc": self.market.market_close_utc,
             "trade_id": trade_id,
             "side": side,
             "price": float(price),
             "size": float(size),
             "outcome": outcome,
+            "asset": asset,
+            "transaction_hash": tx,
+            "token_up": self.market.token_up,
+            "token_down": self.market.token_down,
             "source": self.config.source,
         }
 
     def collect_once(self, *, now_utc: datetime | None = None) -> dict[str, int]:
         now = (now_utc or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        collector_ts_utc = iso_utc(now)
+        collector_cycle_id = str(int(now.timestamp() * 1000))
         self.storage.ensure_daily_files(now_utc=now)
         counts = {"prices": 0, "orderbook": 0, "trades": 0}
 
@@ -510,8 +523,11 @@ class MarketDataCollector:
                 kind="prices",
                 now_utc=now,
                 row={
-                    "timestamp_utc": iso_utc(now),
+                    "timestamp_utc": collector_ts_utc,
+                    "collector_ts_utc": collector_ts_utc,
+                    "collector_cycle_id": collector_cycle_id,
                     "market_key": self.market.market_key,
+                    "condition_id": self.market.condition_id,
                     "best_bid": float(best_bid),
                     "best_ask": float(best_ask),
                     "midpoint": float(midpoint),
@@ -519,6 +535,8 @@ class MarketDataCollector:
                     "source": self.config.source,
                     "market_slug": self.market.slug,
                     "market_close_utc": self.market.market_close_utc,
+                    "token_up": self.market.token_up,
+                    "token_down": self.market.token_down,
                 },
             )
             counts["prices"] += 1
@@ -528,13 +546,19 @@ class MarketDataCollector:
                 kind="orderbook",
                 now_utc=now,
                 row={
-                    "timestamp_utc": iso_utc(now),
+                    "timestamp_utc": collector_ts_utc,
+                    "collector_ts_utc": collector_ts_utc,
+                    "collector_cycle_id": collector_cycle_id,
                     "market_key": self.market.market_key,
+                    "condition_id": self.market.condition_id,
                     "bids": up_bids,
                     "asks": up_asks,
                     "depth_used": int(self.book_depth),
                     "source": self.config.source,
                     "market_slug": self.market.slug,
+                    "market_close_utc": self.market.market_close_utc,
+                    "token_up": self.market.token_up,
+                    "token_down": self.market.token_down,
                     "yes_bids": up_bids,
                     "yes_asks": up_asks,
                     "no_bids": down_bids,
