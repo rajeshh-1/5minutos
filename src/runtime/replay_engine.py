@@ -10,6 +10,11 @@ from typing import Any
 
 from src.core.config import TARGET_MODE_NET, StrategyConfig
 from src.core.reason_codes import LEG1_OPENED, LEG2_HEDGE_FILLED
+from src.runtime.execution_realism import (
+    ExecutionRealismConfig,
+    ExecutionRealismLayer,
+    load_execution_realism_config_if_exists,
+)
 from src.strategy.state_machine import LeggingState, LeggingStateMachine
 
 
@@ -20,6 +25,7 @@ REQUIRED_COLUMNS = {
     "down_price",
     "seconds_to_close",
 }
+DEFAULT_EXECUTION_REALISM_CONFIG_PATH = Path("configs/execution_realism_pessimistic.json")
 
 
 @dataclass(frozen=True)
@@ -30,6 +36,9 @@ class ReplayEvent:
     up_price: float
     down_price: float
     seconds_to_close: int
+    synthetic_depth: float = 0.0
+    synthetic_volatility: float = 0.0
+    has_synthetic_fields: bool = False
 
 
 @dataclass(frozen=True)
@@ -56,6 +65,22 @@ def _safe_int(value: Any, *, name: str) -> int:
     return out
 
 
+def _pctl(values: list[float], q: float) -> float:
+    if not values:
+        return 0.0
+    vals = sorted(float(v) for v in values)
+    qn = max(0.0, min(1.0, float(q)))
+    if len(vals) == 1:
+        return vals[0]
+    pos = qn * (len(vals) - 1)
+    lo = int(pos)
+    hi = min(lo + 1, len(vals) - 1)
+    if lo == hi:
+        return vals[lo]
+    frac = pos - lo
+    return (vals[lo] * (1.0 - frac)) + (vals[hi] * frac)
+
+
 def load_replay_events(csv_path: str | Path, event_cap: int | None = None) -> list[ReplayEvent]:
     path = Path(csv_path)
     with path.open("r", encoding="utf-8", newline="") as fh:
@@ -65,6 +90,7 @@ def load_replay_events(csv_path: str | Path, event_cap: int | None = None) -> li
         missing = REQUIRED_COLUMNS - set(reader.fieldnames)
         if missing:
             raise ValueError(f"input CSV missing columns: {sorted(missing)}")
+        has_synthetic_fields = ("synthetic_depth" in reader.fieldnames) or ("synthetic_volatility" in reader.fieldnames)
         rows: list[dict[str, str]] = list(reader)
 
     rows.sort(key=lambda row: str(row.get("timestamp_utc", "")))
@@ -81,6 +107,9 @@ def load_replay_events(csv_path: str | Path, event_cap: int | None = None) -> li
                 up_price=_safe_float(row["up_price"], name="up_price"),
                 down_price=_safe_float(row["down_price"], name="down_price"),
                 seconds_to_close=_safe_int(row["seconds_to_close"], name="seconds_to_close"),
+                synthetic_depth=_safe_float(row.get("synthetic_depth", 0.0), name="synthetic_depth"),
+                synthetic_volatility=_safe_float(row.get("synthetic_volatility", 0.0), name="synthetic_volatility"),
+                has_synthetic_fields=bool(has_synthetic_fields),
             )
         )
     return events
@@ -134,6 +163,13 @@ def run_replay(
     reason_codes_path = out / "reason_codes.csv"
 
     rng = random.Random(int(seed))
+    use_realism = any(bool(event.has_synthetic_fields) for event in events)
+    realism_layer: ExecutionRealismLayer | None = None
+    realism_cfg = ExecutionRealismConfig()
+    if use_realism:
+        realism_cfg = load_execution_realism_config_if_exists(DEFAULT_EXECUTION_REALISM_CONFIG_PATH)
+        realism_layer = ExecutionRealismLayer(realism_cfg, seed=int(seed) + 101)
+
     reason_counts: Counter[str] = Counter()
     final_state_counts: Counter[str] = Counter()
     trade_log_rows: list[dict[str, Any]] = []
@@ -145,10 +181,18 @@ def run_replay(
     pnl_total = 0.0
     closed_trades = 0
 
+    sim_attempted = 0
+    sim_partial_count = 0
+    sim_cancel_count = 0
+    sim_hedge_fail_count = 0
+    sim_latency_ms: list[float] = []
+    sim_slippage_bps: list[float] = []
+
     active_sm: LeggingStateMachine | None = None
     active_market_key: str | None = None
     active_leg1_side: str | None = None
     active_leg1_open_price: float | None = None
+    active_fill_ratio = 1.0
 
     def append_new_records(
         *,
@@ -158,6 +202,11 @@ def run_replay(
         p1_price: float | None,
         p2_price: float | None,
         close_pnl_estimate: float = 0.0,
+        simulated_latency_ms: int | None = None,
+        simulated_fill_ratio: float | None = None,
+        simulated_slippage_bps: float | None = None,
+        simulated_cancelled: bool = False,
+        simulated_hedge_fail: bool = False,
     ) -> None:
         nonlocal leg1_opened, leg2_hedged, unwind_count
         for rec in sm.audit_log[old_len:]:
@@ -173,6 +222,15 @@ def run_replay(
                     "p2_price": "" if p2_price is None else round(float(p2_price), 8),
                     "pnl_estimate": round(float(pnl_estimate), 10),
                     "reason_code": rec.reason_code,
+                    "simulated_latency_ms": "" if simulated_latency_ms is None else int(simulated_latency_ms),
+                    "simulated_fill_ratio": (
+                        "" if simulated_fill_ratio is None else round(float(simulated_fill_ratio), 8)
+                    ),
+                    "simulated_slippage_bps": (
+                        "" if simulated_slippage_bps is None else round(float(simulated_slippage_bps), 6)
+                    ),
+                    "simulated_cancelled": bool(simulated_cancelled),
+                    "simulated_hedge_fail": bool(simulated_hedge_fail),
                 }
             )
             reason_counts[rec.reason_code] += 1
@@ -203,6 +261,7 @@ def run_replay(
                 active_market_key = None
                 active_leg1_side = None
                 active_leg1_open_price = None
+                active_fill_ratio = 1.0
             continue
 
         if active_market_key is None or active_leg1_side is None or active_leg1_open_price is None:
@@ -216,15 +275,87 @@ def run_replay(
             p1_cur = float(event.down_price)
             p2_cur = float(event.up_price)
 
+        simulated_latency = None
+        simulated_fill_ratio = None
+        simulated_slippage = None
+        simulated_cancelled = False
+        simulated_hedge_fail = False
+        p2_exec = p2_cur
+
+        if realism_layer is not None:
+            safe_depth = float(event.synthetic_depth) if float(event.synthetic_depth) > 0 else max(
+                1.0, float(config.stake_usd_per_leg) * 5.0
+            )
+            safe_volatility = max(0.0, float(event.synthetic_volatility))
+            simulated_latency = realism_layer.sample_latency_ms(
+                volatility=safe_volatility,
+                seconds_to_close=event.seconds_to_close,
+            )
+            simulated_fill_ratio = realism_layer.estimate_fill_ratio(
+                order_size=float(config.stake_usd_per_leg),
+                depth=safe_depth,
+                volatility=safe_volatility,
+                seconds_to_close=event.seconds_to_close,
+            )
+            simulated_slippage = realism_layer.estimate_slippage_bps(
+                order_size=float(config.stake_usd_per_leg),
+                depth=safe_depth,
+                volatility=safe_volatility,
+                seconds_to_close=event.seconds_to_close,
+            )
+            simulated_cancelled = realism_layer.should_cancel(
+                volatility=safe_volatility,
+                seconds_to_close=event.seconds_to_close,
+                fill_ratio=float(simulated_fill_ratio),
+            )
+            simulated_hedge_fail = realism_layer.should_hedge_fail(
+                volatility=safe_volatility,
+                seconds_to_close=event.seconds_to_close,
+                fill_ratio=float(simulated_fill_ratio),
+            )
+            sim_attempted += 1
+            sim_latency_ms.append(float(simulated_latency))
+            sim_slippage_bps.append(float(simulated_slippage))
+            if float(simulated_fill_ratio) < 0.999999:
+                sim_partial_count += 1
+            if simulated_cancelled:
+                sim_cancel_count += 1
+            if simulated_hedge_fail:
+                sim_hedge_fail_count += 1
+
         old_len = len(active_sm.audit_log)
-        active_sm.try_open_leg2(p2_price=p2_cur, logical_ts=event.logical_ts)
-        append_new_records(
-            sm=active_sm,
-            old_len=old_len,
-            event=event,
-            p1_price=active_leg1_open_price,
-            p2_price=p2_cur,
-        )
+        if simulated_cancelled or simulated_hedge_fail:
+            active_sm.timeout_leg2(logical_ts=event.logical_ts)
+            append_new_records(
+                sm=active_sm,
+                old_len=old_len,
+                event=event,
+                p1_price=active_leg1_open_price,
+                p2_price=p2_cur,
+                simulated_latency_ms=simulated_latency,
+                simulated_fill_ratio=simulated_fill_ratio,
+                simulated_slippage_bps=simulated_slippage,
+                simulated_cancelled=simulated_cancelled,
+                simulated_hedge_fail=simulated_hedge_fail,
+            )
+        else:
+            if simulated_slippage is not None:
+                p2_exec = float(p2_cur) * (1.0 + (float(simulated_slippage) / 10000.0))
+            hedged = active_sm.try_open_leg2(p2_price=p2_exec, logical_ts=event.logical_ts)
+            append_new_records(
+                sm=active_sm,
+                old_len=old_len,
+                event=event,
+                p1_price=active_leg1_open_price,
+                p2_price=p2_exec,
+                simulated_latency_ms=simulated_latency,
+                simulated_fill_ratio=simulated_fill_ratio,
+                simulated_slippage_bps=simulated_slippage,
+                simulated_cancelled=simulated_cancelled,
+                simulated_hedge_fail=simulated_hedge_fail,
+            )
+            if hedged and simulated_fill_ratio is not None:
+                active_fill_ratio = max(0.0, min(1.0, float(simulated_fill_ratio)))
 
         loss_bps = _calc_loss_bps(active_leg1_open_price, p1_cur)
         if active_sm.state == LeggingState.LEG1_OPEN:
@@ -235,13 +366,21 @@ def run_replay(
                 old_len=old_len,
                 event=event,
                 p1_price=active_leg1_open_price,
-                p2_price=p2_cur,
+                p2_price=p2_exec,
+                simulated_latency_ms=simulated_latency,
+                simulated_fill_ratio=simulated_fill_ratio,
+                simulated_slippage_bps=simulated_slippage,
+                simulated_cancelled=simulated_cancelled,
+                simulated_hedge_fail=simulated_hedge_fail,
             )
 
         if active_sm.state in {LeggingState.HEDGED, LeggingState.UNWIND}:
             state_before_close = active_sm.state
             if state_before_close == LeggingState.HEDGED:
-                close_pnl = _calc_hedged_pnl(config, active_leg1_open_price, p2_cur)
+                close_pnl = _calc_hedged_pnl(config, active_leg1_open_price, p2_exec) * max(0.0, min(1.0, active_fill_ratio))
+                if active_fill_ratio < 0.999999:
+                    residual = 1.0 - max(0.0, min(1.0, active_fill_ratio))
+                    close_pnl -= residual * 0.01 * float(config.stake_usd_per_leg)
             else:
                 close_pnl = _calc_unwind_pnl(config, loss_bps)
 
@@ -252,8 +391,13 @@ def run_replay(
                 old_len=old_len,
                 event=event,
                 p1_price=active_leg1_open_price,
-                p2_price=p2_cur,
+                p2_price=p2_exec,
                 close_pnl_estimate=close_pnl,
+                simulated_latency_ms=simulated_latency,
+                simulated_fill_ratio=simulated_fill_ratio,
+                simulated_slippage_bps=simulated_slippage,
+                simulated_cancelled=simulated_cancelled,
+                simulated_hedge_fail=simulated_hedge_fail,
             )
 
             if active_sm.state == LeggingState.CLOSED:
@@ -264,6 +408,7 @@ def run_replay(
             active_market_key = None
             active_leg1_side = None
             active_leg1_open_price = None
+            active_fill_ratio = 1.0
 
     if active_sm is not None and active_sm.state == LeggingState.LEG1_OPEN and events:
         last_event = events[-1]
@@ -295,6 +440,11 @@ def run_replay(
     hedge_success_rate = (float(leg2_hedged) / float(leg1_opened)) if leg1_opened > 0 else 0.0
     pnl_per_trade = (pnl_total / float(closed_trades)) if closed_trades > 0 else 0.0
     top_reason_codes = reason_counts.most_common(10)
+    partial_fill_rate = (float(sim_partial_count) / float(sim_attempted)) if sim_attempted > 0 else 0.0
+    cancel_rate = (float(sim_cancel_count) / float(sim_attempted)) if sim_attempted > 0 else 0.0
+    hedge_fail_rate_simulated = (float(sim_hedge_fail_count) / float(sim_attempted)) if sim_attempted > 0 else 0.0
+    avg_slippage_bps = (sum(sim_slippage_bps) / float(len(sim_slippage_bps))) if sim_slippage_bps else 0.0
+    p95_latency_ms = _pctl(sim_latency_ms, 0.95) if sim_latency_ms else 0.0
 
     summary: dict[str, Any] = {
         "events_processed": len(events),
@@ -307,6 +457,13 @@ def run_replay(
         "pnl_per_trade": round(pnl_per_trade, 10),
         "final_state_counts": dict(final_state_counts),
         "top_reason_codes": top_reason_codes,
+        "execution_realism_enabled": bool(use_realism),
+        "execution_realism_model": realism_cfg.exec_model if use_realism else "disabled",
+        "partial_fill_rate": round(partial_fill_rate, 10),
+        "cancel_rate": round(cancel_rate, 10),
+        "hedge_fail_rate_simulated": round(hedge_fail_rate_simulated, 10),
+        "avg_slippage_bps": round(avg_slippage_bps, 10),
+        "p95_latency_ms": round(float(p95_latency_ms), 10),
     }
 
     with trade_log_path.open("w", encoding="utf-8", newline="") as fh:
@@ -322,6 +479,11 @@ def run_replay(
                 "p2_price",
                 "pnl_estimate",
                 "reason_code",
+                "simulated_latency_ms",
+                "simulated_fill_ratio",
+                "simulated_slippage_bps",
+                "simulated_cancelled",
+                "simulated_hedge_fail",
             ],
         )
         writer.writeheader()
@@ -342,4 +504,3 @@ def run_replay(
         reason_codes_path=reason_codes_path,
         summary=summary,
     )
-

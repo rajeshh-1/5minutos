@@ -1,0 +1,13 @@
+{
+  "exec_model": "pessimistic",
+  "latency_mean_ms": 280,
+  "latency_p95_ms": 1400,
+  "cancel_prob_base": 0.09,
+  "partial_fill_prob_base": 0.28,
+  "hedge_fail_prob_base": 0.08,
+  "slippage_base_bps": 14.0,
+  "slippage_depth_alpha": 45.0,
+  "close_window_sec": 45,
+  "close_window_penalty_mult": 1.9,
+  "min_fill_ratio": 0.35
+}

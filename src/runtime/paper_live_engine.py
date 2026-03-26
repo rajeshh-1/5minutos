@@ -20,6 +20,7 @@ from src.core.reason_codes import (
     UNWIND_ON_TIMEOUT,
 )
 from src.runtime.checkpoint_store import CheckpointStore
+from src.runtime.execution_realism import ExecutionRealismLayer, load_execution_realism_config_if_exists
 from src.runtime.metrics import compute_live_metrics_from_aggregates
 from src.strategy.state_machine import AuditRecord, LeggingState, LeggingStateMachine
 
@@ -29,6 +30,7 @@ class MarketSession:
     machine: LeggingStateMachine
     leg1_side: str
     leg1_open_price: float
+    fill_ratio: float = 1.0
 
 
 SESSION_AGE_TIMEOUT = "session_age_timeout"
@@ -130,6 +132,8 @@ class PaperLiveEngine:
         self.use_checkpoint = bool(use_checkpoint)
         self.max_log_buffer = max(1, int(max_log_buffer))
         self.max_session_age_sec = max(1, int(max_session_age_sec))
+        realism_cfg = load_execution_realism_config_if_exists(Path("configs/execution_realism_pessimistic.json"))
+        self.realism_layer = ExecutionRealismLayer(realism_cfg, seed=int(seed) + 701)
 
         self.offsets: dict[str, int] = {}
         if self.checkpoint_store is not None and self.use_checkpoint:
@@ -248,6 +252,11 @@ class PaperLiveEngine:
         p1_price: float | None,
         p2_price: float | None,
         close_pnl_estimate: float = 0.0,
+        simulated_latency_ms: int | None = None,
+        simulated_fill_ratio: float | None = None,
+        simulated_slippage_bps: float | None = None,
+        simulated_cancelled: bool = False,
+        simulated_hedge_fail: bool = False,
     ) -> None:
         market_key = str(event_row.get("market_key", ""))
         for rec in session.machine.audit_log[old_len:]:
@@ -263,6 +272,15 @@ class PaperLiveEngine:
                     "p2_price": "" if p2_price is None else round(float(p2_price), 8),
                     "pnl_estimate": round(float(pnl_estimate), 10),
                     "reason_code": rec.reason_code,
+                    "simulated_latency_ms": "" if simulated_latency_ms is None else int(simulated_latency_ms),
+                    "simulated_fill_ratio": (
+                        "" if simulated_fill_ratio is None else round(float(simulated_fill_ratio), 8)
+                    ),
+                    "simulated_slippage_bps": (
+                        "" if simulated_slippage_bps is None else round(float(simulated_slippage_bps), 6)
+                    ),
+                    "simulated_cancelled": bool(simulated_cancelled),
+                    "simulated_hedge_fail": bool(simulated_hedge_fail),
                 }
             )
             self.reason_counts[rec.reason_code] += 1
@@ -309,6 +327,11 @@ class PaperLiveEngine:
                     "p2_price",
                     "pnl_estimate",
                     "reason_code",
+                    "simulated_latency_ms",
+                    "simulated_fill_ratio",
+                    "simulated_slippage_bps",
+                    "simulated_cancelled",
+                    "simulated_hedge_fail",
                 ],
             )
             if write_header:
@@ -401,6 +424,38 @@ class PaperLiveEngine:
                 p1_cur = float(down)
                 p2_cur = float(up)
 
+            simulated_latency = self.realism_layer.sample_latency_ms(
+                volatility=max(0.0, float(_safe_float(row.get("synthetic_volatility"), default=0.0) or 0.0)),
+                seconds_to_close=seconds_to_close,
+            )
+            depth = float(_safe_float(row.get("synthetic_depth"), default=0.0) or 0.0)
+            if depth <= 0.0:
+                depth = max(1.0, float(self.config.stake_usd_per_leg) * 5.0)
+            volatility = max(0.0, float(_safe_float(row.get("synthetic_volatility"), default=0.0) or 0.0))
+            simulated_fill_ratio = self.realism_layer.estimate_fill_ratio(
+                order_size=float(self.config.stake_usd_per_leg),
+                depth=depth,
+                volatility=volatility,
+                seconds_to_close=seconds_to_close,
+            )
+            simulated_slippage = self.realism_layer.estimate_slippage_bps(
+                order_size=float(self.config.stake_usd_per_leg),
+                depth=depth,
+                volatility=volatility,
+                seconds_to_close=seconds_to_close,
+            )
+            simulated_cancelled = self.realism_layer.should_cancel(
+                volatility=volatility,
+                seconds_to_close=seconds_to_close,
+                fill_ratio=simulated_fill_ratio,
+            )
+            simulated_hedge_fail = self.realism_layer.should_hedge_fail(
+                volatility=volatility,
+                seconds_to_close=seconds_to_close,
+                fill_ratio=simulated_fill_ratio,
+            )
+            p2_exec = float(p2_cur) * (1.0 + (float(simulated_slippage) / 10000.0))
+
             old_len = len(session.machine.audit_log)
             aged_out = self._apply_session_age_timeout(session=session, logical_ts=logical_ts)
             if aged_out:
@@ -409,18 +464,33 @@ class PaperLiveEngine:
                     session=session,
                     event_row=row,
                     p1_price=session.leg1_open_price,
-                    p2_price=p2_cur,
+                    p2_price=p2_exec,
+                    simulated_latency_ms=simulated_latency,
+                    simulated_fill_ratio=simulated_fill_ratio,
+                    simulated_slippage_bps=simulated_slippage,
+                    simulated_cancelled=simulated_cancelled,
+                    simulated_hedge_fail=simulated_hedge_fail,
                 )
 
             old_len = len(session.machine.audit_log)
             if session.machine.state == LeggingState.LEG1_OPEN:
-                session.machine.try_open_leg2(p2_price=p2_cur, logical_ts=logical_ts)
+                if simulated_cancelled or simulated_hedge_fail:
+                    session.machine.timeout_leg2(logical_ts=logical_ts)
+                else:
+                    hedged = session.machine.try_open_leg2(p2_price=p2_exec, logical_ts=logical_ts)
+                    if hedged:
+                        session.fill_ratio = max(0.0, min(1.0, float(simulated_fill_ratio)))
                 self._append_records(
                     old_len=old_len,
                     session=session,
                     event_row=row,
                     p1_price=session.leg1_open_price,
-                    p2_price=p2_cur,
+                    p2_price=p2_exec,
+                    simulated_latency_ms=simulated_latency,
+                    simulated_fill_ratio=simulated_fill_ratio,
+                    simulated_slippage_bps=simulated_slippage,
+                    simulated_cancelled=simulated_cancelled,
+                    simulated_hedge_fail=simulated_hedge_fail,
                 )
 
             if session.machine.state == LeggingState.LEG1_OPEN:
@@ -432,13 +502,20 @@ class PaperLiveEngine:
                     session=session,
                     event_row=row,
                     p1_price=session.leg1_open_price,
-                    p2_price=p2_cur,
+                    p2_price=p2_exec,
+                    simulated_latency_ms=simulated_latency,
+                    simulated_fill_ratio=simulated_fill_ratio,
+                    simulated_slippage_bps=simulated_slippage,
+                    simulated_cancelled=simulated_cancelled,
+                    simulated_hedge_fail=simulated_hedge_fail,
                 )
 
             if session.machine.state in {LeggingState.HEDGED, LeggingState.UNWIND}:
                 state_before_close = session.machine.state
                 if state_before_close == LeggingState.HEDGED:
-                    close_pnl = _calc_hedged_pnl(self.config, session.leg1_open_price, p2_cur)
+                    close_pnl = _calc_hedged_pnl(self.config, session.leg1_open_price, p2_exec) * session.fill_ratio
+                    if session.fill_ratio < 0.999999:
+                        close_pnl -= (1.0 - session.fill_ratio) * 0.01 * float(self.config.stake_usd_per_leg)
                 else:
                     loss_bps = _calc_loss_bps(session.leg1_open_price, p1_cur)
                     close_pnl = _calc_unwind_pnl(self.config, loss_bps)
@@ -450,8 +527,13 @@ class PaperLiveEngine:
                     session=session,
                     event_row=row,
                     p1_price=session.leg1_open_price,
-                    p2_price=p2_cur,
+                    p2_price=p2_exec,
                     close_pnl_estimate=close_pnl,
+                    simulated_latency_ms=simulated_latency,
+                    simulated_fill_ratio=simulated_fill_ratio,
+                    simulated_slippage_bps=simulated_slippage,
+                    simulated_cancelled=simulated_cancelled,
+                    simulated_hedge_fail=simulated_hedge_fail,
                 )
 
                 if session.machine.state == LeggingState.CLOSED:
