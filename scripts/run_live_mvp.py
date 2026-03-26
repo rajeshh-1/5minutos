@@ -153,6 +153,8 @@ class LiveMVPRunner:
         executor: PolymarketLiveExecutor | None = None,
         enable_live: bool = False,
         dry_run: bool = True,
+        log_mode: str = "simple",
+        heartbeat_sec: float = 5.0,
     ) -> None:
         self.cfg = cfg
         self.runtime_sec = max(0, int(runtime_sec))
@@ -170,7 +172,84 @@ class LiveMVPRunner:
         self.executor = executor
         self.kill_switch_triggered = False
         self.kill_switch_reason = ""
+        self.log_mode = str(log_mode or "simple").strip().lower()
+        if self.log_mode not in {"simple", "verbose"}:
+            self.log_mode = "simple"
+        self.heartbeat_sec = max(1.0, float(heartbeat_sec))
+        self._last_heartbeat_at = 0.0
+        self._last_skip_reason = ""
+        self._last_skip_logged_ms = 0
         self._init_report_file()
+
+    def _emit_console_action(
+        self,
+        *,
+        ts_utc: str,
+        market_key: str,
+        action: str,
+        reason_code: str,
+        leg1_side: str,
+        leg1_price: float | None,
+        leg2_price: float | None,
+        unwind_price: float | None,
+        order_id_leg1: str,
+        order_id_leg2: str,
+        note: str,
+    ) -> None:
+        if self.log_mode != "simple":
+            return
+        if action == "skip_entry":
+            now_ms = int(time.time() * 1000)
+            if reason_code != self._last_skip_reason or (now_ms - self._last_skip_logged_ms) >= int(self.heartbeat_sec * 1000):
+                print(f"{ts_utc} | nao_entrou motivo={reason_code} market={market_key}")
+                self._last_skip_reason = reason_code
+                self._last_skip_logged_ms = now_ms
+            return
+        if action == "enter_leg1":
+            print(
+                f"{ts_utc} | encontrou_sinal comprou_perna_a side={leg1_side} price={leg1_price} "
+                f"order_a={order_id_leg1 or 'simulado'} market={market_key}"
+            )
+            return
+        if action == "try_leg1":
+            print(
+                f"{ts_utc} | encontrou_sinal tentando_comprar_perna_a side={leg1_side} "
+                f"price={leg1_price} market={market_key}"
+            )
+            return
+        if action == "try_hedge":
+            print(
+                f"{ts_utc} | tentando_hedge_perna_b price_b={leg2_price} "
+                f"order_a={order_id_leg1 or '-'} market={market_key}"
+            )
+            return
+        if action == "hedge_leg2":
+            print(
+                f"{ts_utc} | hedge_perna_b_ok price_b={leg2_price} order_a={order_id_leg1 or '-'} "
+                f"order_b={order_id_leg2 or '-'} market={market_key}"
+            )
+            return
+        if action == "unwind_leg1":
+            print(
+                f"{ts_utc} | hedge_falhou vendeu_perna_a price_saida={unwind_price} "
+                f"order_a={order_id_leg1 or '-'} order_b={order_id_leg2 or '-'} motivo={reason_code} market={market_key}"
+            )
+            return
+        if action == "critical_stop":
+            print(f"{ts_utc} | ERRO_CRITICO kill_switch motivo={reason_code} note={note}")
+
+    def _maybe_print_heartbeat(self) -> None:
+        if self.log_mode != "simple":
+            return
+        now = time.time()
+        if (now - self._last_heartbeat_at) < float(self.heartbeat_sec):
+            return
+        self._last_heartbeat_at = now
+        print(
+            f"{_iso_utc_now()} | buscando_sinal processed={self.rows_processed} "
+            f"abertas={len(self.pending_by_market)} fechadas={sum(self.trades_closed_by_market.values())} "
+            f"pnl={self.daily_pnl:.6f}"
+        )
 
     def _init_report_file(self) -> None:
         self.report_file.parent.mkdir(parents=True, exist_ok=True)
@@ -287,6 +366,19 @@ class LiveMVPRunner:
                 }
             )
         self.actions_logged += 1
+        self._emit_console_action(
+            ts_utc=ts_utc,
+            market_key=market_key,
+            action=action,
+            reason_code=reason_code,
+            leg1_side=leg1_side,
+            leg1_price=leg1_price,
+            leg2_price=leg2_price,
+            unwind_price=unwind_price,
+            order_id_leg1=order_id_leg1,
+            order_id_leg2=order_id_leg2,
+            note=note,
+        )
 
     def _iter_orderbook_files(self) -> list[Path]:
         preferred = self.raw_dir / "sol5m"
@@ -479,6 +571,19 @@ class LiveMVPRunner:
                     raise ValueError("missing_leg2_token_id")
                 if pending.quantity <= EPS:
                     raise ValueError("invalid_leg_quantity")
+                self._emit_console_action(
+                    ts_utc=str(snapshot["ts_utc"]),
+                    market_key=market_key,
+                    action="try_hedge",
+                    reason_code="",
+                    leg1_side=pending.leg1_side,
+                    leg1_price=pending.leg1_ask,
+                    leg2_price=float(leg2_ask),
+                    unwind_price=None,
+                    order_id_leg1=pending.order_id_leg1,
+                    order_id_leg2=pending.order_id_leg2,
+                    note="",
+                )
                 if self._within_bounds(leg2_ask):
                     hedge_result = self.executor.place_leg2_hedge(  # type: ignore[union-attr]
                         token_id=pending.leg2_token_id,
@@ -690,6 +795,19 @@ class LiveMVPRunner:
                 )
                 return
             try:
+                self._emit_console_action(
+                    ts_utc=ts_utc,
+                    market_key=market_key,
+                    action="try_leg1",
+                    reason_code="",
+                    leg1_side=leg1_side,
+                    leg1_price=leg1_ask,
+                    leg2_price=None,
+                    unwind_price=None,
+                    order_id_leg1="",
+                    order_id_leg2="",
+                    note="",
+                )
                 leg1_result = self.executor.place_leg1_order(  # type: ignore[union-attr]
                     token_id=leg1_token_id,
                     price=float(leg1_ask),
@@ -956,11 +1074,14 @@ class LiveMVPRunner:
                         self.rows_processed += 1
                         self._process_snapshot(snap)
 
-                print(
-                    f"{_iso_utc_now()} | rows={new_rows_total} processed={self.rows_processed} "
-                    f"open_pending={len(self.pending_by_market)} closed_trades={sum(self.trades_closed_by_market.values())} "
-                    f"daily_pnl={self.daily_pnl:.6f}"
-                )
+                if self.log_mode == "verbose":
+                    print(
+                        f"{_iso_utc_now()} | rows={new_rows_total} processed={self.rows_processed} "
+                        f"open_pending={len(self.pending_by_market)} closed_trades={sum(self.trades_closed_by_market.values())} "
+                        f"daily_pnl={self.daily_pnl:.6f}"
+                    )
+                else:
+                    self._maybe_print_heartbeat()
 
                 if self.kill_switch_triggered:
                     print(f"[live-mvp] kill-switch triggered reason={self.kill_switch_reason}")
@@ -993,6 +1114,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--confirm-live", default="", help="Required token for live: I_UNDERSTAND_THE_RISK")
     parser.add_argument("--dry-run", default="true", help="true|false")
     parser.add_argument("--env-file", default=".env", help="Path to env file for live mode")
+    parser.add_argument(
+        "--log-mode",
+        default="simple",
+        choices=["simple", "verbose"],
+        help="simple=eventos essenciais; verbose=heartbeat por ciclo",
+    )
+    parser.add_argument(
+        "--heartbeat-sec",
+        type=float,
+        default=5.0,
+        help="Intervalo do status 'buscando_sinal' no log-mode simple",
+    )
     return parser.parse_args(argv)
 
 
@@ -1036,6 +1169,8 @@ def main(argv: list[str] | None = None) -> int:
         executor=executor,
         enable_live=enable_live,
         dry_run=dry_run,
+        log_mode=str(args.log_mode),
+        heartbeat_sec=float(args.heartbeat_sec),
     )
     return runner.run()
 
