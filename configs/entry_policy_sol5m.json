@@ -1,0 +1,16 @@
+{
+  "max_sum_ask_global": 0.99,
+  "high_edge_threshold": 0.95,
+  "mid_edge_threshold": 0.98,
+  "low_edge_threshold": 0.99,
+  "min_seconds_to_close": 75,
+  "max_spread": 0.02,
+  "min_depth_buffer_mult": 1.2,
+  "max_trades_per_market": 1,
+  "max_unwind_loss_bps": 120,
+  "regime_timeouts_ms": {
+    "high_edge": 1200,
+    "mid_edge": 2500,
+    "low_edge": 3000
+  }
+}

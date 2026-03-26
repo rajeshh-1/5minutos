@@ -6,7 +6,7 @@ import json
 import random
 import time
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,6 +22,10 @@ from src.core.reason_codes import (
 from src.runtime.checkpoint_store import CheckpointStore
 from src.runtime.execution_realism import ExecutionRealismLayer, load_execution_realism_config_if_exists
 from src.runtime.metrics import compute_live_metrics_from_aggregates
+from src.strategy.entry_policy import (
+    load_entry_policy_config,
+    evaluate_entry,
+)
 from src.strategy.state_machine import AuditRecord, LeggingState, LeggingStateMachine
 
 
@@ -134,6 +138,7 @@ class PaperLiveEngine:
         self.max_session_age_sec = max(1, int(max_session_age_sec))
         realism_cfg = load_execution_realism_config_if_exists(Path("configs/execution_realism_pessimistic.json"))
         self.realism_layer = ExecutionRealismLayer(realism_cfg, seed=int(seed) + 701)
+        self.entry_policy_cfg = load_entry_policy_config(Path("configs/entry_policy_sol5m.json"))
 
         self.offsets: dict[str, int] = {}
         if self.checkpoint_store is not None and self.use_checkpoint:
@@ -141,6 +146,8 @@ class PaperLiveEngine:
 
         self._csv_headers: dict[str, list[str]] = {}
         self.market_sessions: dict[str, MarketSession] = {}
+        self.latest_orderbook_by_market: dict[str, dict[str, Any]] = {}
+        self.trades_opened_by_market: Counter[str] = Counter()
         self.reason_counts: Counter[str] = Counter()
         self.final_state_counts: Counter[str] = Counter()
         self.trade_log_rows: list[dict[str, Any]] = []
@@ -243,6 +250,107 @@ class PaperLiveEngine:
         self.offsets[key] = new_offset
         return rows, new_offset
 
+    def _best_level(self, levels: Any) -> tuple[float | None, float | None]:
+        if not isinstance(levels, list) or not levels:
+            return None, None
+        first = levels[0]
+        if not isinstance(first, dict):
+            return None, None
+        return _safe_float(first.get("price"), default=None), _safe_float(first.get("size"), default=None)
+
+    def _update_orderbook_cache(self, rows: list[dict[str, Any]]) -> None:
+        for row in rows:
+            market_key = str(row.get("market_key", "")).strip()
+            if not market_key:
+                continue
+            self.latest_orderbook_by_market[market_key] = row
+
+    def _derive_entry_snapshot(self, row: dict[str, Any]) -> dict[str, float] | None:
+        market_key = str(row.get("market_key", "")).strip()
+        cached_book = self.latest_orderbook_by_market.get(market_key, {})
+
+        yes_ask_level, yes_ask_size_level = self._best_level(cached_book.get("yes_asks"))
+        no_ask_level, no_ask_size_level = self._best_level(cached_book.get("no_asks"))
+        yes_bid_level, _ = self._best_level(cached_book.get("yes_bids"))
+        no_bid_level, _ = self._best_level(cached_book.get("no_bids"))
+
+        yes_ask = (
+            _safe_float(row.get("up_price"), default=None)
+            or _safe_float(row.get("yes_ask"), default=None)
+            or _safe_float(row.get("best_ask"), default=None)
+            or yes_ask_level
+        )
+        no_ask = (
+            _safe_float(row.get("down_price"), default=None)
+            or _safe_float(row.get("no_ask"), default=None)
+            or no_ask_level
+        )
+        yes_bid = _safe_float(row.get("yes_bid"), default=None) or _safe_float(row.get("best_bid"), default=None) or yes_bid_level
+        no_bid = _safe_float(row.get("no_bid"), default=None) or no_bid_level
+
+        yes_depth = _safe_float(row.get("yes_ask_size"), default=None) or yes_ask_size_level
+        no_depth = _safe_float(row.get("no_ask_size"), default=None) or no_ask_size_level
+
+        if yes_ask is None or no_ask is None:
+            return None
+
+        # Fallbacks keep paper simulation running when partial book fields are absent.
+        if yes_bid is None:
+            yes_bid = max(0.0, float(yes_ask) - 0.05)
+        if no_bid is None:
+            no_bid = max(0.0, float(no_ask) - 0.05)
+        if yes_depth is None:
+            yes_depth = max(0.0, float(self.config.stake_usd_per_leg))
+        if no_depth is None:
+            no_depth = max(0.0, float(self.config.stake_usd_per_leg))
+
+        return {
+            "yes_ask": float(yes_ask),
+            "no_ask": float(no_ask),
+            "yes_bid": float(yes_bid),
+            "no_bid": float(no_bid),
+            "yes_depth": float(yes_depth),
+            "no_depth": float(no_depth),
+            "sum_ask": float(yes_ask) + float(no_ask),
+            "spread_yes": max(0.0, float(yes_ask) - float(yes_bid)),
+            "spread_no": max(0.0, float(no_ask) - float(no_bid)),
+        }
+
+    def _append_entry_policy_decision(
+        self,
+        *,
+        event_row: dict[str, Any],
+        reason_code: str,
+        regime: str,
+        sum_ask: float,
+        entry_mode: str,
+        detail: str,
+    ) -> None:
+        self.trade_log_rows.append(
+            {
+                "event_ts": str(event_row.get("timestamp_utc", "")),
+                "market_key": str(event_row.get("market_key", "")),
+                "action": "entry_policy",
+                "state_from": "",
+                "state_to": "",
+                "p1_price": "",
+                "p2_price": "",
+                "pnl_estimate": 0.0,
+                "reason_code": str(reason_code),
+                "simulated_latency_ms": "",
+                "simulated_fill_ratio": "",
+                "simulated_slippage_bps": "",
+                "simulated_cancelled": "",
+                "simulated_hedge_fail": "",
+                "regime": str(regime),
+                "sum_ask": round(float(sum_ask), 8),
+                "entry_mode": str(entry_mode),
+                "entry_policy_detail": str(detail),
+            }
+        )
+        self.reason_counts[str(reason_code)] += 1
+        self._flush_trade_log_buffer_if_needed()
+
     def _append_records(
         self,
         *,
@@ -281,6 +389,10 @@ class PaperLiveEngine:
                     ),
                     "simulated_cancelled": bool(simulated_cancelled),
                     "simulated_hedge_fail": bool(simulated_hedge_fail),
+                    "regime": "",
+                    "sum_ask": "",
+                    "entry_mode": "",
+                    "entry_policy_detail": "",
                 }
             )
             self.reason_counts[rec.reason_code] += 1
@@ -332,6 +444,10 @@ class PaperLiveEngine:
                     "simulated_slippage_bps",
                     "simulated_cancelled",
                     "simulated_hedge_fail",
+                    "regime",
+                    "sum_ask",
+                    "entry_mode",
+                    "entry_policy_detail",
                 ],
             )
             if write_header:
@@ -339,22 +455,16 @@ class PaperLiveEngine:
             writer.writerows(self.trade_log_rows)
         self.trade_log_rows.clear()
 
-    def _choose_leg1_side_and_prices(self, row: dict[str, Any]) -> tuple[str, float, float] | None:
-        up = _safe_float(row.get("up_price"), default=None)
-        down = _safe_float(row.get("down_price"), default=None)
-        if up is None:
-            up = _safe_float(row.get("yes_ask"), default=None)
-        if down is None:
-            down = _safe_float(row.get("no_ask"), default=None)
-        if up is None or down is None:
-            return None
+    def _choose_leg1_side_and_prices(self, *, yes_ask: float, no_ask: float) -> tuple[str, float, float]:
+        up = float(yes_ask)
+        down = float(no_ask)
         if up < down:
-            return "up", float(up), float(down)
+            return "up", up, down
         if down < up:
-            return "down", float(down), float(up)
+            return "down", down, up
         if self.rng.random() < 0.5:
-            return "up", float(up), float(down)
-        return "down", float(down), float(up)
+            return "up", up, down
+        return "down", down, up
 
     def _apply_session_age_timeout(self, *, session: MarketSession, logical_ts: int) -> bool:
         sm = session.machine
@@ -385,14 +495,52 @@ class PaperLiveEngine:
                 continue
             logical_ts = _derive_logical_ts(row, fallback=self.cycle_id)
             seconds_to_close = _derive_seconds_to_close(row)
+            snapshot = self._derive_entry_snapshot(row)
+            if snapshot is None:
+                continue
+
+            yes_ask = float(snapshot["yes_ask"])
+            no_ask = float(snapshot["no_ask"])
+            yes_bid = float(snapshot["yes_bid"])
+            no_bid = float(snapshot["no_bid"])
+            yes_depth = float(snapshot["yes_depth"])
+            no_depth = float(snapshot["no_depth"])
+            sum_ask = float(snapshot["sum_ask"])
+            spread_yes = float(snapshot["spread_yes"])
+            spread_no = float(snapshot["spread_no"])
 
             session = self.market_sessions.get(market_key)
             if session is None:
-                chosen = self._choose_leg1_side_and_prices(row)
-                if chosen is None:
+                decision = evaluate_entry(
+                    cfg=self.entry_policy_cfg,
+                    sum_ask=sum_ask,
+                    spread_yes=spread_yes,
+                    spread_no=spread_no,
+                    depth_yes=yes_depth,
+                    depth_no=no_depth,
+                    stake_usd_per_leg=float(self.config.stake_usd_per_leg),
+                    seconds_to_close=seconds_to_close,
+                    trades_opened_in_market=int(self.trades_opened_by_market.get(market_key, 0)),
+                )
+                self._append_entry_policy_decision(
+                    event_row=row,
+                    reason_code=decision.reason_code,
+                    regime=decision.regime.value,
+                    sum_ask=decision.sum_ask,
+                    entry_mode=decision.entry_mode,
+                    detail=decision.detail,
+                )
+                if not decision.allow_entry:
                     continue
+
+                chosen = self._choose_leg1_side_and_prices(yes_ask=yes_ask, no_ask=no_ask)
                 side, p1_open, _p2_initial = chosen
-                sm = LeggingStateMachine(config=self.config)
+                session_cfg = replace(
+                    self.config,
+                    leg2_timeout_ms=int(decision.leg2_timeout_ms),
+                    max_unwind_loss_bps=float(self.entry_policy_cfg.max_unwind_loss_bps),
+                )
+                sm = LeggingStateMachine(config=session_cfg)
                 session = MarketSession(machine=sm, leg1_side=side, leg1_open_price=p1_open)
                 self.trades_attempted += 1
                 old_len = len(sm.audit_log)
@@ -406,23 +554,15 @@ class PaperLiveEngine:
                 )
                 if opened:
                     self.market_sessions[market_key] = session
-                continue
-
-            up = _safe_float(row.get("up_price"), default=None)
-            down = _safe_float(row.get("down_price"), default=None)
-            if up is None:
-                up = _safe_float(row.get("yes_ask"), default=None)
-            if down is None:
-                down = _safe_float(row.get("no_ask"), default=None)
-            if up is None or down is None:
+                    self.trades_opened_by_market[market_key] += 1
                 continue
 
             if session.leg1_side == "up":
-                p1_cur = float(up)
-                p2_cur = float(down)
+                p1_cur = float(yes_ask)
+                p2_cur = float(no_ask)
             else:
-                p1_cur = float(down)
-                p2_cur = float(up)
+                p1_cur = float(no_ask)
+                p2_cur = float(yes_ask)
 
             simulated_latency = self.realism_layer.sample_latency_ms(
                 volatility=max(0.0, float(_safe_float(row.get("synthetic_volatility"), default=0.0) or 0.0)),
@@ -430,7 +570,7 @@ class PaperLiveEngine:
             )
             depth = float(_safe_float(row.get("synthetic_depth"), default=0.0) or 0.0)
             if depth <= 0.0:
-                depth = max(1.0, float(self.config.stake_usd_per_leg) * 5.0)
+                depth = max(1.0, min(yes_depth, no_depth))
             volatility = max(0.0, float(_safe_float(row.get("synthetic_volatility"), default=0.0) or 0.0))
             simulated_fill_ratio = self.realism_layer.estimate_fill_ratio(
                 order_size=float(self.config.stake_usd_per_leg),
@@ -513,12 +653,12 @@ class PaperLiveEngine:
             if session.machine.state in {LeggingState.HEDGED, LeggingState.UNWIND}:
                 state_before_close = session.machine.state
                 if state_before_close == LeggingState.HEDGED:
-                    close_pnl = _calc_hedged_pnl(self.config, session.leg1_open_price, p2_exec) * session.fill_ratio
+                    close_pnl = _calc_hedged_pnl(session.machine.config, session.leg1_open_price, p2_exec) * session.fill_ratio
                     if session.fill_ratio < 0.999999:
                         close_pnl -= (1.0 - session.fill_ratio) * 0.01 * float(self.config.stake_usd_per_leg)
                 else:
                     loss_bps = _calc_loss_bps(session.leg1_open_price, p1_cur)
-                    close_pnl = _calc_unwind_pnl(self.config, loss_bps)
+                    close_pnl = _calc_unwind_pnl(session.machine.config, loss_bps)
 
                 old_len = len(session.machine.audit_log)
                 session.machine.close_position(logical_ts=logical_ts)
@@ -621,14 +761,18 @@ class PaperLiveEngine:
         rows_read_cycle: dict[str, int] = {"prices": 0, "trades": 0, "orderbook": 0, "total": 0}
 
         price_rows: list[dict[str, Any]] = []
+        orderbook_rows: list[dict[str, Any]] = []
         for kind in ("trades", "prices", "orderbook"):
             for path in source_files[kind]:
                 rows, _new_offset = self._read_new_rows(path)
                 rows_read_cycle[kind] += len(rows)
                 if kind == "prices":
                     price_rows.extend(rows)
+                elif kind == "orderbook":
+                    orderbook_rows.extend(rows)
         rows_read_cycle["total"] = rows_read_cycle["prices"] + rows_read_cycle["trades"] + rows_read_cycle["orderbook"]
 
+        self._update_orderbook_cache(orderbook_rows)
         self._process_prices(price_rows)
         self._flush_trade_log_buffer_if_needed()
         snapshot = self._build_metrics_snapshot(rows_read_cycle=rows_read_cycle)
