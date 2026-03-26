@@ -4,7 +4,7 @@ import json
 import time
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -184,6 +184,7 @@ class MarketDataCollector:
         collect_orderbook: bool = True,
         collect_trades: bool = True,
         checkpoint_file: str | Path | None = None,
+        last_closed_file: str | Path | None = None,
     ) -> None:
         self.config = config
         self.raw_dir = Path(raw_dir)
@@ -194,6 +195,7 @@ class MarketDataCollector:
         self.collect_orderbook = bool(collect_orderbook)
         self.collect_trades = bool(collect_trades)
         self.checkpoint_file = Path(checkpoint_file) if checkpoint_file else None
+        self.last_closed_file = Path(last_closed_file) if last_closed_file else None
         self.started_at_utc = iso_utc()
         self.storage = JsonlStorageWriter(
             raw_dir=self.raw_dir,
@@ -205,6 +207,26 @@ class MarketDataCollector:
         self.seen_trade_ids: set[str] = set()
         self.discarded_in_cycle = 0
         self._load_checkpoint()
+
+    def _write_last_closed_market(self, closed_market: ResolvedMarket, *, now_utc: datetime) -> None:
+        if self.last_closed_file is None:
+            return
+        market_key = str(closed_market.market_key or "").strip()
+        condition_id = str(closed_market.condition_id or "").strip()
+        close_time_utc = str(closed_market.market_close_utc or "").strip()
+        if not market_key or not condition_id or not close_time_utc:
+            return
+        payload = {
+            "market_key": market_key,
+            "condition_id": condition_id,
+            "close_time_utc": close_time_utc,
+            "market_slug": str(closed_market.slug or "").strip(),
+            "generated_at_utc": iso_utc(now_utc),
+        }
+        self.last_closed_file.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.last_closed_file.with_suffix(self.last_closed_file.suffix + ".tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+        tmp.replace(self.last_closed_file)
 
     def _build_slug(self, now_utc: datetime) -> str:
         if self.config.market.slug_static:
@@ -229,7 +251,21 @@ class MarketDataCollector:
         last_error: Exception | None = None
         for attempt in range(self.config.request.retries + 1):
             try:
-                req = urllib.request.Request(full_url, method="GET")
+                req = urllib.request.Request(
+                    full_url,
+                    method="GET",
+                    headers={
+                        "User-Agent": (
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                            "AppleWebKit/537.36 (KHTML, like Gecko) "
+                            "Chrome/124.0.0.0 Safari/537.36"
+                        ),
+                        "Accept": "application/json,text/plain,*/*",
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Origin": "https://polymarket.com",
+                        "Referer": "https://polymarket.com/",
+                    },
+                )
                 with urllib.request.urlopen(req, timeout=float(self.config.request.timeout_sec)) as resp:
                     raw = resp.read()
                 return json.loads(raw.decode("utf-8"))
@@ -411,9 +447,23 @@ class MarketDataCollector:
         counts = {"prices": 0, "orderbook": 0, "trades": 0}
 
         slug = self._build_slug(now)
+        previous_market: ResolvedMarket | None = None
+        if slug != self.market.slug and self.market.market_key:
+            previous_market = ResolvedMarket(
+                slug=self.market.slug,
+                condition_id=self.market.condition_id,
+                token_up=self.market.token_up,
+                token_down=self.market.token_down,
+                label_up=self.market.label_up,
+                label_down=self.market.label_down,
+                market_key=self.market.market_key,
+                market_close_utc=self.market.market_close_utc,
+            )
         if slug != self.market.slug or not self.market.market_key:
             try:
                 self._resolve_market(slug=slug)
+                if previous_market is not None:
+                    self._write_last_closed_market(previous_market, now_utc=now)
             except Exception as exc:  # noqa: BLE001
                 self.storage.add_error()
                 self.storage.add_warning(f"market_resolve_error:{exc}")

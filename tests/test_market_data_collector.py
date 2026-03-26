@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from src.io.market_data_collector import (
@@ -22,6 +22,24 @@ def _base_config() -> CollectorConfig:
             coin="sol",
             bucket_min=5,
             slug_static="sol-updown-5m-1700000000",
+            slug_prefix="sol-updown-5m-",
+            labels_up=("up", "yes"),
+            labels_down=("down", "no"),
+        ),
+        endpoints=EndpointConfig(),
+        request=RequestConfig(timeout_sec=1.0, retries=0, backoff_sec=0.0),
+    )
+
+
+def _rollover_config() -> CollectorConfig:
+    return CollectorConfig(
+        source="test-source",
+        market_folder="sol5m",
+        market=MarketConfig(
+            market_key_prefix="SOL5M",
+            coin="sol",
+            bucket_min=5,
+            slug_static="",
             slug_prefix="sol-updown-5m-",
             labels_up=("up", "yes"),
             labels_down=("down", "no"),
@@ -62,6 +80,21 @@ class FakeCollector(MarketDataCollector):
 
     def _fetch_trades(self, condition_id: str) -> list[dict]:
         return list(self._fake_trades)
+
+
+class RolloverCollector(FakeCollector):
+    def _resolve_market(self, *, slug: str) -> None:
+        self.market.slug = slug
+        slug_ts = int(str(slug).rsplit("-", 1)[-1])
+        close_dt = datetime.fromtimestamp(slug_ts, tz=timezone.utc) + timedelta(minutes=5)
+        close_utc = close_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.market.condition_id = f"cond_{slug_ts}"
+        self.market.token_up = "token_up"
+        self.market.token_down = "token_down"
+        self.market.label_up = "Up"
+        self.market.label_down = "Down"
+        self.market.market_close_utc = close_utc
+        self.market.market_key = f"SOL5M_{close_utc}"
 
 
 def test_collector_collect_once_writes_prices_orderbook_trades_and_metadata(tmp_path: Path) -> None:
@@ -160,3 +193,30 @@ def test_collector_rotates_files_by_utc_date(tmp_path: Path) -> None:
     assert (folder / "prices_2026-03-26.jsonl").exists()
     assert (folder / "metadata_2026-03-25.json").exists()
     assert (folder / "metadata_2026-03-26.json").exists()
+
+
+def test_collector_writes_last_closed_market_on_rollover(tmp_path: Path) -> None:
+    last_closed_file = tmp_path / "reports" / "live" / "last_closed_market.json"
+    collector = RolloverCollector(
+        config=_rollover_config(),
+        raw_dir=tmp_path / "data" / "raw",
+        interval_sec=0.1,
+        runtime_sec=0,
+        book_depth=15,
+        trade_limit=150,
+        collect_orderbook=False,
+        collect_trades=False,
+        last_closed_file=last_closed_file,
+    )
+
+    first_now = datetime(2026, 3, 25, 10, 0, 10, tzinfo=timezone.utc)
+    second_now = datetime(2026, 3, 25, 10, 5, 10, tzinfo=timezone.utc)
+    collector.collect_once(now_utc=first_now)
+    assert not last_closed_file.exists()
+
+    collector.collect_once(now_utc=second_now)
+    assert last_closed_file.exists()
+    payload = json.loads(last_closed_file.read_text(encoding="utf-8"))
+    assert payload["market_key"] == "SOL5M_2026-03-25T10:05:00Z"
+    assert payload["condition_id"] == f"cond_{int(datetime(2026, 3, 25, 10, 0, 0, tzinfo=timezone.utc).timestamp())}"
+    assert payload["close_time_utc"] == "2026-03-25T10:05:00Z"

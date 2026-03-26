@@ -19,6 +19,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--book-depth", type=int, default=15)
     parser.add_argument("--trade-limit", type=int, default=150)
     parser.add_argument("--checkpoint-file", default="")
+    parser.add_argument(
+        "--last-closed-file",
+        default="reports/live/last_closed_market.json",
+        help="Path for Terminal A to publish the latest closed market payload.",
+    )
     parser.add_argument("--no-orderbook", action="store_true")
     parser.add_argument("--no-trades", action="store_true")
     parser.add_argument("--config", default="configs/data_collection_sol5m.json")
@@ -38,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
         collect_orderbook=not bool(args.no_orderbook),
         collect_trades=not bool(args.no_trades),
         checkpoint_file=(args.checkpoint_file or None),
+        last_closed_file=(args.last_closed_file or None),
     )
     return collector.run()
 

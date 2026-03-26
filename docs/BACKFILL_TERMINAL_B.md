@@ -18,6 +18,15 @@ Expected `last_closed_market.json` payload:
 }
 ```
 
+Terminal A can publish this file with:
+
+```bash
+python scripts/collect_sol5m_real.py \
+  --config configs/data_collection_sol5m.json \
+  --raw-dir data/raw \
+  --last-closed-file reports/live/last_closed_market.json
+```
+
 ## Outputs
 - `data/raw/sol5m/backfill/trades_<condition_id>.jsonl`
 - `data/raw/sol5m/backfill/meta_<condition_id>.json`
@@ -66,4 +75,3 @@ Generated file `reports/live/reconciliation_<condition_id>.json` includes:
 - API failures use retry/backoff from `configs/data_collection_sol5m.json`.
 - Errors do not crash the loop; the cycle logs warning and continues.
 - Processed markets are tracked in `backfill_state.json` to avoid reprocessing.
-
