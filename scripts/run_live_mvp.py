@@ -16,6 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.io.market_data_collector import MarketDataCollector, load_collector_config, normalize_levels
 from src.execution.polymarket_auth import PolymarketAuthConfig
 from src.execution.polymarket_live_executor import LiveOrderResult, PolymarketLiveExecutor
 
@@ -155,6 +156,8 @@ class LiveMVPRunner:
         dry_run: bool = True,
         log_mode: str = "simple",
         heartbeat_sec: float = 5.0,
+        market_source: str = "file",
+        collector_config_path: str = "configs/data_collection_sol5m.json",
     ) -> None:
         self.cfg = cfg
         self.runtime_sec = max(0, int(runtime_sec))
@@ -179,6 +182,15 @@ class LiveMVPRunner:
         self._last_heartbeat_at = 0.0
         self._last_skip_reason = ""
         self._last_skip_logged_ms = 0
+        self._last_api_warning = ""
+        self._last_api_warning_ms = 0
+        self.market_source = str(market_source or "file").strip().lower()
+        if self.market_source not in {"file", "api"}:
+            self.market_source = "file"
+        self.collector_config_path = str(collector_config_path or "configs/data_collection_sol5m.json")
+        self.api_collector: MarketDataCollector | None = None
+        if self.market_source == "api":
+            self.api_collector = self._build_api_collector(config_path=self.collector_config_path)
         self._init_report_file()
 
     def _emit_console_action(
@@ -396,6 +408,88 @@ class LiveMVPRunner:
             seen.add(key)
             unique.append(path)
         return unique
+
+    def _build_api_collector(self, *, config_path: str) -> MarketDataCollector:
+        collector_cfg = load_collector_config(config_path)
+        return MarketDataCollector(
+            config=collector_cfg,
+            raw_dir=self.raw_dir,
+            interval_sec=float(self.cfg.poll_interval_sec),
+            runtime_sec=0,
+            book_depth=1,
+            trade_limit=1,
+            collect_orderbook=False,
+            collect_trades=False,
+            checkpoint_file=None,
+            last_closed_file=None,
+        )
+
+    def _warn_api_throttled(self, message: str) -> None:
+        now_ms = int(time.time() * 1000)
+        if message != self._last_api_warning or (now_ms - self._last_api_warning_ms) >= int(self.heartbeat_sec * 1000):
+            print(f"{_iso_utc_now()} | api_warning {message}")
+            self._last_api_warning = message
+            self._last_api_warning_ms = now_ms
+
+    def _read_api_snapshots(self) -> list[dict[str, Any]]:
+        if self.api_collector is None:
+            return []
+        now_utc = datetime.now(timezone.utc)
+        try:
+            slug = self.api_collector._build_slug(now_utc)  # noqa: SLF001
+            if slug != self.api_collector.market.slug or not self.api_collector.market.market_key:
+                self.api_collector._resolve_market(slug=slug)  # noqa: SLF001
+            if not self.api_collector.market.market_key:
+                self._warn_api_throttled("market_key_missing")
+                return []
+
+            up_book = self.api_collector._fetch_book(self.api_collector.market.token_up)  # noqa: SLF001
+            down_book = self.api_collector._fetch_book(self.api_collector.market.token_down)  # noqa: SLF001
+
+            up_bids = normalize_levels(up_book.get("bids"), depth=1, reverse=True)
+            up_asks = normalize_levels(up_book.get("asks"), depth=1, reverse=False)
+            down_bids = normalize_levels(down_book.get("bids"), depth=1, reverse=True)
+            down_asks = normalize_levels(down_book.get("asks"), depth=1, reverse=False)
+
+            if not up_asks or not down_asks:
+                self._warn_api_throttled("book_missing_asks")
+                return []
+            if not up_bids or not down_bids:
+                self._warn_api_throttled("book_missing_bids")
+                return []
+
+            yes_ask = _safe_float(up_asks[0].get("price"), default=None)
+            yes_bid = _safe_float(up_bids[0].get("price"), default=None)
+            yes_ask_size = _safe_float(up_asks[0].get("size"), default=0.0) or 0.0
+            no_ask = _safe_float(down_asks[0].get("price"), default=None)
+            no_bid = _safe_float(down_bids[0].get("price"), default=None)
+            no_ask_size = _safe_float(down_asks[0].get("size"), default=0.0) or 0.0
+            if yes_ask is None or no_ask is None:
+                self._warn_api_throttled("book_invalid_prices")
+                return []
+
+            ts_utc = _iso_utc_now()
+            market_key = str(self.api_collector.market.market_key or "").strip()
+            snapshot = {
+                "ts_utc": ts_utc,
+                "market_key": market_key,
+                "token_up": str(self.api_collector.market.token_up or "").strip(),
+                "token_down": str(self.api_collector.market.token_down or "").strip(),
+                "yes_ask": float(yes_ask),
+                "yes_bid": None if yes_bid is None else float(yes_bid),
+                "yes_ask_size": float(yes_ask_size),
+                "yes_spread": None if yes_bid is None else float(yes_ask) - float(yes_bid),
+                "no_ask": float(no_ask),
+                "no_bid": None if no_bid is None else float(no_bid),
+                "no_ask_size": float(no_ask_size),
+                "no_spread": None if no_bid is None else float(no_ask) - float(no_bid),
+                "sum_ask": float(yes_ask) + float(no_ask),
+                "seconds_to_close": self._seconds_to_close(ts_utc=ts_utc, market_key=market_key),
+            }
+            return [snapshot]
+        except Exception as exc:  # noqa: BLE001
+            self._warn_api_throttled(f"snapshot_error:{exc}")
+            return []
 
     def _bootstrap_offsets_from_end(self) -> None:
         if self._offsets_bootstrapped or not bool(self.cfg.start_from_end):
@@ -1055,24 +1149,34 @@ class LiveMVPRunner:
             f"cutoff_sec={self.cfg.entry_cutoff_sec} max_spread={self.cfg.max_spread} "
             f"depth_mult={self.cfg.min_depth_buffer_mult} max_unwind_loss_bps={self.cfg.max_unwind_loss_bps}"
         )
-        print(f"[live-mvp] raw_dir={self.raw_dir} report_file={self.report_file}")
-        if self.cfg.start_from_end:
+        print(
+            f"[live-mvp] market_source={self.market_source} raw_dir={self.raw_dir} "
+            f"report_file={self.report_file}"
+        )
+        if self.market_source == "file" and self.cfg.start_from_end:
             print("[live-mvp] start_from_end=true (ignora historico e processa apenas novos ticks)")
         started = time.time()
         try:
             while True:
-                self._bootstrap_offsets_from_end()
-                files = self._iter_orderbook_files()
                 new_rows_total = 0
-                for path in files:
-                    rows = self._read_new_rows(path)
-                    new_rows_total += len(rows)
-                    for row in rows:
-                        snap = self._extract_snapshot(row)
-                        if snap is None:
-                            continue
+                if self.market_source == "api":
+                    snapshots = self._read_api_snapshots()
+                    new_rows_total = len(snapshots)
+                    for snap in snapshots:
                         self.rows_processed += 1
                         self._process_snapshot(snap)
+                else:
+                    self._bootstrap_offsets_from_end()
+                    files = self._iter_orderbook_files()
+                    for path in files:
+                        rows = self._read_new_rows(path)
+                        new_rows_total += len(rows)
+                        for row in rows:
+                            snap = self._extract_snapshot(row)
+                            if snap is None:
+                                continue
+                            self.rows_processed += 1
+                            self._process_snapshot(snap)
 
                 if self.log_mode == "verbose":
                     print(
@@ -1114,6 +1218,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--confirm-live", default="", help="Required token for live: I_UNDERSTAND_THE_RISK")
     parser.add_argument("--dry-run", default="true", help="true|false")
     parser.add_argument("--env-file", default=".env", help="Path to env file for live mode")
+    parser.add_argument(
+        "--market-source",
+        default="file",
+        choices=["file", "api"],
+        help="file=usa orderbook_*.jsonl; api=consulta Polymarket direto",
+    )
+    parser.add_argument(
+        "--collector-config",
+        default="configs/data_collection_sol5m.json",
+        help="Config de endpoints/slug para modo --market-source api",
+    )
     parser.add_argument(
         "--log-mode",
         default="simple",
@@ -1169,6 +1284,8 @@ def main(argv: list[str] | None = None) -> int:
         executor=executor,
         enable_live=enable_live,
         dry_run=dry_run,
+        market_source=str(args.market_source),
+        collector_config_path=str(args.collector_config),
         log_mode=str(args.log_mode),
         heartbeat_sec=float(args.heartbeat_sec),
     )
