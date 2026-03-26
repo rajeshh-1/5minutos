@@ -56,6 +56,7 @@ class LiveMVPConfig:
     leg2_timeout_ms: int = 2000
     max_daily_loss_usd: float = 3.0
     poll_interval_sec: float = 0.5
+    start_from_end: bool = True
     raw_dir: str = "data/raw"
     report_file: str = "reports/live_mvp_trades.csv"
 
@@ -89,6 +90,7 @@ class LiveMVPConfig:
             leg2_timeout_ms=int(payload.get("leg2_timeout_ms", 2000)),
             max_daily_loss_usd=float(payload.get("max_daily_loss_usd", 3.0)),
             poll_interval_sec=float(payload.get("poll_interval_sec", 0.5)),
+            start_from_end=bool(payload.get("start_from_end", True)),
             raw_dir=str(payload.get("raw_dir", "data/raw")),
             report_file=str(payload.get("report_file", "reports/live_mvp_trades.csv")),
         )
@@ -132,6 +134,7 @@ class LiveMVPRunner:
         self.daily_pnl = 0.0
         self.rows_processed = 0
         self.actions_logged = 0
+        self._offsets_bootstrapped = False
         self._init_report_file()
 
     def _init_report_file(self) -> None:
@@ -242,6 +245,17 @@ class LiveMVPRunner:
             seen.add(key)
             unique.append(path)
         return unique
+
+    def _bootstrap_offsets_from_end(self) -> None:
+        if self._offsets_bootstrapped or not bool(self.cfg.start_from_end):
+            return
+        for path in self._iter_orderbook_files():
+            key = str(path.resolve())
+            try:
+                self.offsets[key] = int(path.stat().st_size)
+            except Exception:
+                self.offsets[key] = 0
+        self._offsets_bootstrapped = True
 
     def _read_new_rows(self, path: Path) -> list[dict[str, Any]]:
         key = str(path.resolve())
@@ -522,9 +536,12 @@ class LiveMVPRunner:
             f"max_daily_loss_usd={self.cfg.max_daily_loss_usd}"
         )
         print(f"[live-mvp] raw_dir={self.raw_dir} report_file={self.report_file}")
+        if self.cfg.start_from_end:
+            print("[live-mvp] start_from_end=true (ignora historico e processa apenas novos ticks)")
         started = time.time()
         try:
             while True:
+                self._bootstrap_offsets_from_end()
                 files = self._iter_orderbook_files()
                 new_rows_total = 0
                 for path in files:

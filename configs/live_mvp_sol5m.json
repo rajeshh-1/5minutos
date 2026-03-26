@@ -8,6 +8,7 @@
   "leg2_timeout_ms": 2000,
   "max_daily_loss_usd": 3.0,
   "poll_interval_sec": 0.5,
+  "start_from_end": true,
   "raw_dir": "data/raw",
   "report_file": "reports/live_mvp_trades.csv"
 }

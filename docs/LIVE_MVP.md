@@ -30,6 +30,10 @@ python scripts/run_live_mvp.py --config configs/live_mvp_sol5m.json --runtime-se
 
 `runtime-sec=0` roda ate Ctrl+C.
 
+### Comportamento de inicio
+- `start_from_end=true` (default no config MVP): ignora backlog antigo e processa apenas ticks novos.
+- `start_from_end=false`: processa tambem historico ja gravado nos arquivos de orderbook.
+
 ## Campos de log (CSV)
 - `action`: `enter_leg1`, `hedge_leg2`, `unwind_leg1`, `skip_entry`
 - `status`: `open`, `closed`, `blocked`
