@@ -51,6 +51,10 @@ class LiveMVPConfig:
     price_min: float = 0.05
     price_max: float = 0.95
     max_sum_ask: float = 0.99
+    entry_cutoff_sec: int = 75
+    max_spread: float = 0.02
+    min_depth_buffer_mult: float = 1.2
+    max_unwind_loss_bps: float = 120.0
     stake_usd_per_leg: float = 1.0
     max_trades_per_market: int = 1
     leg2_timeout_ms: int = 2000
@@ -67,6 +71,14 @@ class LiveMVPConfig:
             raise ValueError("price range must satisfy 0 <= min < max <= 1")
         if float(self.max_sum_ask) <= 0 or float(self.max_sum_ask) > 1:
             raise ValueError("max_sum_ask must be in (0, 1]")
+        if int(self.entry_cutoff_sec) < 0:
+            raise ValueError("entry_cutoff_sec must be >= 0")
+        if float(self.max_spread) < 0 or float(self.max_spread) > 1:
+            raise ValueError("max_spread must be in [0, 1]")
+        if float(self.min_depth_buffer_mult) <= 0:
+            raise ValueError("min_depth_buffer_mult must be > 0")
+        if float(self.max_unwind_loss_bps) < 0:
+            raise ValueError("max_unwind_loss_bps must be >= 0")
         if float(self.stake_usd_per_leg) <= 0:
             raise ValueError("stake_usd_per_leg must be > 0")
         if int(self.max_trades_per_market) < 1:
@@ -85,6 +97,10 @@ class LiveMVPConfig:
             price_min=float(payload.get("price_min", 0.05)),
             price_max=float(payload.get("price_max", 0.95)),
             max_sum_ask=float(payload.get("max_sum_ask", 0.99)),
+            entry_cutoff_sec=int(payload.get("entry_cutoff_sec", 75)),
+            max_spread=float(payload.get("max_spread", 0.02)),
+            min_depth_buffer_mult=float(payload.get("min_depth_buffer_mult", 1.2)),
+            max_unwind_loss_bps=float(payload.get("max_unwind_loss_bps", 120.0)),
             stake_usd_per_leg=float(payload.get("stake_usd_per_leg", 1.0)),
             max_trades_per_market=int(payload.get("max_trades_per_market", 1)),
             leg2_timeout_ms=int(payload.get("leg2_timeout_ms", 2000)),
@@ -310,21 +326,27 @@ class LiveMVPRunner:
         if not market_key or not ts_utc:
             return None
 
-        yes_ask, _yes_size = self._first_level(row.get("yes_asks"))
+        yes_ask, yes_ask_size = self._first_level(row.get("yes_asks"))
         yes_bid, _ = self._first_level(row.get("yes_bids"))
-        no_ask, _no_size = self._first_level(row.get("no_asks"))
+        no_ask, no_ask_size = self._first_level(row.get("no_asks"))
         no_bid, _ = self._first_level(row.get("no_bids"))
         if yes_ask is None or no_ask is None:
             return None
 
         sum_ask = float(yes_ask) + float(no_ask)
+        yes_spread = None if yes_bid is None else float(yes_ask) - float(yes_bid)
+        no_spread = None if no_bid is None else float(no_ask) - float(no_bid)
         return {
             "ts_utc": ts_utc,
             "market_key": market_key,
             "yes_ask": float(yes_ask),
             "yes_bid": None if yes_bid is None else float(yes_bid),
+            "yes_ask_size": 0.0 if yes_ask_size is None else float(yes_ask_size),
+            "yes_spread": yes_spread,
             "no_ask": float(no_ask),
             "no_bid": None if no_bid is None else float(no_bid),
+            "no_ask_size": 0.0 if no_ask_size is None else float(no_ask_size),
+            "no_spread": no_spread,
             "sum_ask": float(sum_ask),
             "seconds_to_close": self._seconds_to_close(ts_utc=ts_utc, market_key=market_key),
         }
@@ -339,6 +361,30 @@ class LiveMVPRunner:
         if price is None:
             return False
         return float(self.cfg.price_min) - EPS <= float(price) <= float(self.cfg.price_max) + EPS
+
+    def _within_spread(self, spread: float | None) -> bool:
+        if spread is None:
+            return False
+        return float(spread) <= float(self.cfg.max_spread) + EPS
+
+    def _within_depth(self, size: float | None) -> bool:
+        if size is None:
+            return False
+        needed = float(self.cfg.stake_usd_per_leg) * float(self.cfg.min_depth_buffer_mult)
+        return float(size) + EPS >= needed
+
+    def _calc_unwind_loss_bps(self, *, entry_ask: float, unwind_bid: float | None) -> float:
+        if unwind_bid is None or float(entry_ask) <= EPS:
+            return float("inf")
+        loss = max(0.0, float(entry_ask) - float(unwind_bid))
+        return (loss / float(entry_ask)) * 10000.0
+
+    def _pick_leg1(self, *, snapshot: dict[str, Any]) -> tuple[str, float, float | None, str]:
+        yes_ask = float(snapshot["yes_ask"])
+        no_ask = float(snapshot["no_ask"])
+        if yes_ask <= no_ask:
+            return "yes", yes_ask, snapshot["yes_bid"], "entered_leg1_yes"
+        return "no", no_ask, snapshot["no_bid"], "entered_leg1_no"
 
     def _attempt_hedge_or_unwind(self, *, snapshot: dict[str, Any], pending: PendingTrade) -> None:
         now_ms = self._ts_to_epoch_ms(snapshot["ts_utc"])
@@ -383,16 +429,25 @@ class LiveMVPRunner:
         unwind_price = _safe_float(unwind_bid, default=None)
         if unwind_price is None:
             unwind_price = float(pending.leg1_ask)
+        unwind_loss_bps = self._calc_unwind_loss_bps(entry_ask=float(pending.leg1_ask), unwind_bid=unwind_price)
         pnl_delta = (float(unwind_price) - float(pending.leg1_ask)) * float(self.cfg.stake_usd_per_leg)
         self.daily_pnl += float(pnl_delta)
         self.trades_closed_by_market[market_key] += 1
         self.pending_by_market.pop(market_key, None)
+        reason_code = "leg2_failed_unwind"
+        note = "mvp_timeout_unwind"
+        if unwind_loss_bps > float(self.cfg.max_unwind_loss_bps) + EPS:
+            reason_code = "leg2_failed_unwind_over_limit"
+            note = (
+                f"mvp_timeout_unwind loss_bps={unwind_loss_bps:.2f} "
+                f"> max_unwind_loss_bps={float(self.cfg.max_unwind_loss_bps):.2f}"
+            )
         self._append_action(
             ts_utc=snapshot["ts_utc"],
             market_key=market_key,
             action="unwind_leg1",
             status="closed",
-            reason_code="leg2_failed_unwind",
+            reason_code=reason_code,
             leg1_side=pending.leg1_side,
             yes_ask=yes_ask,
             no_ask=no_ask,
@@ -401,7 +456,7 @@ class LiveMVPRunner:
             leg1_price=pending.leg1_ask,
             unwind_price=unwind_price,
             pnl_delta=pnl_delta,
-            note="mvp_timeout_unwind",
+            note=note,
         )
 
     def _open_leg1(self, *, snapshot: dict[str, Any]) -> None:
@@ -410,17 +465,7 @@ class LiveMVPRunner:
         now_ms = self._ts_to_epoch_ms(ts_utc)
         yes_ask = float(snapshot["yes_ask"])
         no_ask = float(snapshot["no_ask"])
-
-        if yes_ask <= no_ask:
-            leg1_side = "yes"
-            leg1_ask = yes_ask
-            leg1_bid = snapshot["yes_bid"]
-            reason_code = "entered_leg1_yes"
-        else:
-            leg1_side = "no"
-            leg1_ask = no_ask
-            leg1_bid = snapshot["no_bid"]
-            reason_code = "entered_leg1_no"
+        leg1_side, leg1_ask, leg1_bid, reason_code = self._pick_leg1(snapshot=snapshot)
 
         pending = PendingTrade(
             market_key=market_key,
@@ -509,6 +554,59 @@ class LiveMVPRunner:
             )
             return
 
+        if int(seconds_to_close) <= int(self.cfg.entry_cutoff_sec):
+            self._append_action(
+                ts_utc=ts_utc,
+                market_key=market_key,
+                action="skip_entry",
+                status="blocked",
+                reason_code="blocked_by_cutoff",
+                yes_ask=yes_ask,
+                no_ask=no_ask,
+                sum_ask=sum_ask,
+                seconds_to_close=seconds_to_close,
+                note=f"seconds_to_close={seconds_to_close} <= entry_cutoff_sec={int(self.cfg.entry_cutoff_sec)}",
+            )
+            return
+
+        yes_spread = _safe_float(snapshot.get("yes_spread"), default=None)
+        no_spread = _safe_float(snapshot.get("no_spread"), default=None)
+        if not self._within_spread(yes_spread) or not self._within_spread(no_spread):
+            self._append_action(
+                ts_utc=ts_utc,
+                market_key=market_key,
+                action="skip_entry",
+                status="blocked",
+                reason_code="blocked_by_spread",
+                yes_ask=yes_ask,
+                no_ask=no_ask,
+                sum_ask=sum_ask,
+                seconds_to_close=seconds_to_close,
+                note=(
+                    f"yes_spread={yes_spread} no_spread={no_spread} "
+                    f"max_spread={float(self.cfg.max_spread):.6f}"
+                ),
+            )
+            return
+
+        yes_size = _safe_float(snapshot.get("yes_ask_size"), default=0.0)
+        no_size = _safe_float(snapshot.get("no_ask_size"), default=0.0)
+        if not self._within_depth(yes_size) or not self._within_depth(no_size):
+            needed = float(self.cfg.stake_usd_per_leg) * float(self.cfg.min_depth_buffer_mult)
+            self._append_action(
+                ts_utc=ts_utc,
+                market_key=market_key,
+                action="skip_entry",
+                status="blocked",
+                reason_code="blocked_by_depth",
+                yes_ask=yes_ask,
+                no_ask=no_ask,
+                sum_ask=sum_ask,
+                seconds_to_close=seconds_to_close,
+                note=f"yes_size={yes_size} no_size={no_size} needed={needed:.6f}",
+            )
+            return
+
         if float(sum_ask) > float(self.cfg.max_sum_ask) + EPS:
             self._append_action(
                 ts_utc=ts_utc,
@@ -524,6 +622,27 @@ class LiveMVPRunner:
             )
             return
 
+        leg1_side, leg1_ask, leg1_bid, _ = self._pick_leg1(snapshot=snapshot)
+        unwind_loss_bps = self._calc_unwind_loss_bps(entry_ask=leg1_ask, unwind_bid=leg1_bid)
+        if unwind_loss_bps > float(self.cfg.max_unwind_loss_bps) + EPS:
+            self._append_action(
+                ts_utc=ts_utc,
+                market_key=market_key,
+                action="skip_entry",
+                status="blocked",
+                reason_code="blocked_unwind_risk",
+                leg1_side=leg1_side,
+                yes_ask=yes_ask,
+                no_ask=no_ask,
+                sum_ask=sum_ask,
+                seconds_to_close=seconds_to_close,
+                note=(
+                    f"unwind_loss_bps={unwind_loss_bps:.2f} "
+                    f"> max_unwind_loss_bps={float(self.cfg.max_unwind_loss_bps):.2f}"
+                ),
+            )
+            return
+
         self._open_leg1(snapshot=snapshot)
         pending = self.pending_by_market.get(market_key)
         if pending is not None:
@@ -533,7 +652,9 @@ class LiveMVPRunner:
         print(
             f"[live-mvp] start market={self.cfg.market_scope} stake={self.cfg.stake_usd_per_leg} "
             f"sum_ask<={self.cfg.max_sum_ask} timeout_ms={self.cfg.leg2_timeout_ms} "
-            f"max_daily_loss_usd={self.cfg.max_daily_loss_usd}"
+            f"max_daily_loss_usd={self.cfg.max_daily_loss_usd} "
+            f"cutoff_sec={self.cfg.entry_cutoff_sec} max_spread={self.cfg.max_spread} "
+            f"depth_mult={self.cfg.min_depth_buffer_mult} max_unwind_loss_bps={self.cfg.max_unwind_loss_bps}"
         )
         print(f"[live-mvp] raw_dir={self.raw_dir} report_file={self.report_file}")
         if self.cfg.start_from_end:
