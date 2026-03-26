@@ -41,6 +41,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--backfill-interval-sec", type=int, default=300)
     parser.add_argument("--max-pages", type=int, default=0)
     parser.add_argument("--page-size", type=int, default=500)
+    parser.add_argument(
+        "--refresh-attempts",
+        type=int,
+        default=1,
+        help="How many times to refetch the same closed market (deduped by trade_id).",
+    )
+    parser.add_argument(
+        "--refresh-interval-sec",
+        type=int,
+        default=60,
+        help="Seconds between refetch attempts of the same market.",
+    )
     parser.add_argument("--raw-dir", default="data/raw")
     parser.add_argument("--state-file", default="reports/live/backfill_state.json")
     parser.add_argument("--last-closed-file", default="reports/live/last_closed_market.json")
@@ -51,14 +63,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def run_one_cycle(*, args: argparse.Namespace, scheduler: BackfillScheduler) -> bool:
-    market = scheduler.get_pending_market()
+    market = scheduler.get_refresh_candidate(
+        max_attempts=max(1, int(args.refresh_attempts)),
+        refresh_interval_sec=max(1, int(args.refresh_interval_sec)),
+    )
     if market is None:
         print(f"{iso_utc()} | [backfill-loop] no_pending_closed_market")
         return False
 
+    processed_entry = scheduler.state.get("processed", {}).get(market.condition_id, {})
+    if not isinstance(processed_entry, dict):
+        processed_entry = {}
+    attempt_no = max(0, int(processed_entry.get("attempts_done", 0))) + 1
+    attempt_cap = max(1, int(args.refresh_attempts))
+
     print(
         f"{iso_utc()} | [backfill-loop] processing market_key={market.market_key} "
-        f"condition_id={market.condition_id}"
+        f"condition_id={market.condition_id} attempt={attempt_no}/{attempt_cap}"
     )
     result = backfill_market_trades(
         condition_id=market.condition_id,
@@ -97,6 +118,7 @@ def run_one_cycle(*, args: argparse.Namespace, scheduler: BackfillScheduler) -> 
         reconciliation_file=str(recon_file),
         rows_backfill=int(reconciliation.get("backfill_count", 0)),
         rows_realtime=int(reconciliation.get("realtime_count", 0)),
+        max_attempts=max(1, int(args.refresh_attempts)),
     )
 
     print(
@@ -117,7 +139,9 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"[backfill-loop] poll_sec={float(args.poll_sec):.1f} "
         f"backfill_interval_sec={int(args.backfill_interval_sec)} "
-        f"state_file={args.state_file}"
+        f"state_file={args.state_file} "
+        f"refresh_attempts={max(1, int(args.refresh_attempts))} "
+        f"refresh_interval_sec={max(1, int(args.refresh_interval_sec))}"
     )
     try:
         while True:
@@ -135,4 +159,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

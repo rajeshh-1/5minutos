@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from src.io.backfill_scheduler import BackfillScheduler
+from src.io.backfill_scheduler import BackfillScheduler, parse_utc
 
 
 def _write_last_closed(path: Path, *, market_key: str, condition_id: str, close_time_utc: str) -> None:
@@ -60,3 +60,65 @@ def test_scheduler_does_not_reprocess_processed_market(tmp_path: Path) -> None:
     pending_after = scheduler_reloaded.get_pending_market(now_utc=close_dt + timedelta(seconds=2))
     assert pending_after is None
 
+
+def test_scheduler_allows_refresh_attempts_by_interval(tmp_path: Path) -> None:
+    last_closed = tmp_path / "reports" / "live" / "last_closed_market.json"
+    state_file = tmp_path / "reports" / "live" / "backfill_state.json"
+    close_dt = datetime(2026, 3, 26, 4, 0, 0, tzinfo=timezone.utc)
+    _write_last_closed(
+        last_closed,
+        market_key="SOL5M_2026-03-26T04:00:00Z",
+        condition_id="0xrefresh01",
+        close_time_utc=close_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+    scheduler = BackfillScheduler(last_closed_file=last_closed, state_file=state_file, backfill_interval_sec=0)
+
+    first = scheduler.get_refresh_candidate(
+        max_attempts=3,
+        refresh_interval_sec=60,
+        now_utc=close_dt + timedelta(seconds=1),
+    )
+    assert first is not None
+    scheduler.mark_processed(first, max_attempts=3)
+    first_attempt_at = parse_utc(
+        scheduler.state["processed"]["0xrefresh01"]["last_attempt_at_utc"]
+    )
+    assert first_attempt_at is not None
+
+    early_retry = scheduler.get_refresh_candidate(
+        max_attempts=3,
+        refresh_interval_sec=60,
+        now_utc=first_attempt_at + timedelta(seconds=30),
+    )
+    assert early_retry is None
+
+    second = scheduler.get_refresh_candidate(
+        max_attempts=3,
+        refresh_interval_sec=60,
+        now_utc=first_attempt_at + timedelta(seconds=65),
+    )
+    assert second is not None
+    scheduler.mark_processed(second, max_attempts=3)
+    second_attempt_at = parse_utc(
+        scheduler.state["processed"]["0xrefresh01"]["last_attempt_at_utc"]
+    )
+    assert second_attempt_at is not None
+
+    third = scheduler.get_refresh_candidate(
+        max_attempts=3,
+        refresh_interval_sec=60,
+        now_utc=second_attempt_at + timedelta(seconds=65),
+    )
+    assert third is not None
+    scheduler.mark_processed(third, max_attempts=3)
+    third_attempt_at = parse_utc(
+        scheduler.state["processed"]["0xrefresh01"]["last_attempt_at_utc"]
+    )
+    assert third_attempt_at is not None
+
+    capped = scheduler.get_refresh_candidate(
+        max_attempts=3,
+        refresh_interval_sec=60,
+        now_utc=third_attempt_at + timedelta(seconds=65),
+    )
+    assert capped is None

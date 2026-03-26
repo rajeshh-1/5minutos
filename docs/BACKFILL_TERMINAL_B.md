@@ -40,6 +40,8 @@ python scripts/run_backfill_loop.py \
   --backfill-interval-sec 300 \
   --page-size 500 \
   --max-pages 0 \
+  --refresh-attempts 1 \
+  --refresh-interval-sec 60 \
   --raw-dir data/raw \
   --state-file reports/live/backfill_state.json
 ```
@@ -47,6 +49,8 @@ python scripts/run_backfill_loop.py \
 Notes:
 - `--max-pages 0` means fetch until pagination end.
 - `--backfill-interval-sec 300` waits 5 minutes after market close before backfill.
+- `--refresh-attempts 10 --refresh-interval-sec 60` refetches the same closed market
+  up to 10 times, once per minute, always deduping by `trade_id`.
 - Loop runs until `Ctrl+C`.
 
 ## Run Single Backfill

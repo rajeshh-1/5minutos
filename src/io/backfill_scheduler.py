@@ -113,6 +113,38 @@ class BackfillScheduler:
             return None
         return market
 
+    def get_refresh_candidate(
+        self,
+        *,
+        max_attempts: int,
+        refresh_interval_sec: int,
+        now_utc: datetime | None = None,
+    ) -> ClosedMarket | None:
+        market = self.load_last_closed_market()
+        if market is None:
+            return None
+        if not self.is_eligible_by_age(market, now_utc=now_utc):
+            return None
+
+        key = self._market_key(market)
+        processed = self.state.get("processed", {})
+        entry = processed.get(key)
+        if not isinstance(entry, dict):
+            return market
+
+        attempts_done = max(0, int(entry.get("attempts_done", 1)))
+        if attempts_done >= max(1, int(max_attempts)):
+            return None
+
+        last_attempt = parse_utc(entry.get("last_attempt_at_utc", entry.get("processed_at_utc", "")))
+        if last_attempt is None:
+            return market
+        now = (now_utc or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        due_at = last_attempt + timedelta(seconds=max(1, int(refresh_interval_sec)))
+        if now >= due_at:
+            return market
+        return None
+
     def mark_processed(
         self,
         market: ClosedMarket,
@@ -121,18 +153,28 @@ class BackfillScheduler:
         reconciliation_file: str = "",
         rows_backfill: int = 0,
         rows_realtime: int = 0,
+        max_attempts: int = 1,
     ) -> None:
         key = self._market_key(market)
         processed = self.state.setdefault("processed", {})
+        existing = processed.get(key, {})
+        if not isinstance(existing, dict):
+            existing = {}
+        previous_attempts = max(0, int(existing.get("attempts_done", 0)))
+        attempts_done = previous_attempts + 1
+        first_processed_at = str(existing.get("first_processed_at_utc", "")).strip() or iso_utc_now()
         processed[key] = {
             "market_key": market.market_key,
             "condition_id": market.condition_id,
             "close_time_utc": market.close_time_utc,
             "processed_at_utc": iso_utc_now(),
+            "first_processed_at_utc": first_processed_at,
+            "last_attempt_at_utc": iso_utc_now(),
+            "attempts_done": attempts_done,
+            "max_attempts": max(1, int(max_attempts)),
             "backfill_meta_file": str(backfill_meta_file or ""),
             "reconciliation_file": str(reconciliation_file or ""),
             "rows_backfill": int(rows_backfill),
             "rows_realtime": int(rows_realtime),
         }
         self._save_state()
-
