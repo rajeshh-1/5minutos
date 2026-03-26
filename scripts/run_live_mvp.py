@@ -16,8 +16,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.execution.polymarket_auth import PolymarketAuthConfig
+from src.execution.polymarket_live_executor import LiveOrderResult, PolymarketLiveExecutor
+
 
 EPS = 1e-9
+LIVE_CONFIRMATION_TOKEN = "I_UNDERSTAND_THE_RISK"
 
 
 def _safe_float(value: Any, default: float | None = None) -> float | None:
@@ -122,6 +126,13 @@ class PendingTrade:
     leg1_ask: float
     leg1_bid: float | None
     sum_ask_entry: float
+    leg1_token_id: str = ""
+    leg2_token_id: str = ""
+    quantity: float = 0.0
+    order_id_leg1: str = ""
+    order_id_leg2: str = ""
+    fill_status_leg1: str = ""
+    fill_status_leg2: str = ""
 
 
 def load_live_mvp_config(path: str | Path) -> LiveMVPConfig:
@@ -139,6 +150,9 @@ class LiveMVPRunner:
         runtime_sec: int = 0,
         raw_dir_override: str | Path | None = None,
         report_file_override: str | Path | None = None,
+        executor: PolymarketLiveExecutor | None = None,
+        enable_live: bool = False,
+        dry_run: bool = True,
     ) -> None:
         self.cfg = cfg
         self.runtime_sec = max(0, int(runtime_sec))
@@ -151,6 +165,11 @@ class LiveMVPRunner:
         self.rows_processed = 0
         self.actions_logged = 0
         self._offsets_bootstrapped = False
+        self.enable_live = bool(enable_live)
+        self.dry_run = bool(dry_run)
+        self.executor = executor
+        self.kill_switch_triggered = False
+        self.kill_switch_reason = ""
         self._init_report_file()
 
     def _init_report_file(self) -> None:
@@ -174,6 +193,12 @@ class LiveMVPRunner:
                     "leg1_price",
                     "leg2_price",
                     "unwind_price",
+                    "order_id_leg1",
+                    "order_id_leg2",
+                    "fill_status_leg1",
+                    "fill_status_leg2",
+                    "hedge_latency_ms",
+                    "unwind_triggered",
                     "pnl_delta",
                     "pnl_total",
                     "note",
@@ -197,6 +222,12 @@ class LiveMVPRunner:
         leg1_price: float | None = None,
         leg2_price: float | None = None,
         unwind_price: float | None = None,
+        order_id_leg1: str = "",
+        order_id_leg2: str = "",
+        fill_status_leg1: str = "",
+        fill_status_leg2: str = "",
+        hedge_latency_ms: int | None = None,
+        unwind_triggered: bool | None = None,
         pnl_delta: float = 0.0,
         note: str = "",
     ) -> None:
@@ -218,6 +249,12 @@ class LiveMVPRunner:
                     "leg1_price",
                     "leg2_price",
                     "unwind_price",
+                    "order_id_leg1",
+                    "order_id_leg2",
+                    "fill_status_leg1",
+                    "fill_status_leg2",
+                    "hedge_latency_ms",
+                    "unwind_triggered",
                     "pnl_delta",
                     "pnl_total",
                     "note",
@@ -238,6 +275,12 @@ class LiveMVPRunner:
                     "leg1_price": "" if leg1_price is None else round(float(leg1_price), 8),
                     "leg2_price": "" if leg2_price is None else round(float(leg2_price), 8),
                     "unwind_price": "" if unwind_price is None else round(float(unwind_price), 8),
+                    "order_id_leg1": str(order_id_leg1 or ""),
+                    "order_id_leg2": str(order_id_leg2 or ""),
+                    "fill_status_leg1": str(fill_status_leg1 or ""),
+                    "fill_status_leg2": str(fill_status_leg2 or ""),
+                    "hedge_latency_ms": "" if hedge_latency_ms is None else int(hedge_latency_ms),
+                    "unwind_triggered": "" if unwind_triggered is None else bool(unwind_triggered),
                     "pnl_delta": round(float(pnl_delta), 10),
                     "pnl_total": round(float(self.daily_pnl), 10),
                     "note": note,
@@ -339,6 +382,8 @@ class LiveMVPRunner:
         return {
             "ts_utc": ts_utc,
             "market_key": market_key,
+            "token_up": str(row.get("token_up", "")).strip(),
+            "token_down": str(row.get("token_down", "")).strip(),
             "yes_ask": float(yes_ask),
             "yes_bid": None if yes_bid is None else float(yes_bid),
             "yes_ask_size": 0.0 if yes_ask_size is None else float(yes_ask_size),
@@ -373,6 +418,34 @@ class LiveMVPRunner:
         needed = float(self.cfg.stake_usd_per_leg) * float(self.cfg.min_depth_buffer_mult)
         return float(size) + EPS >= needed
 
+    def _size_for_leg(self, price: float) -> float:
+        safe_price = max(EPS, float(price))
+        return float(self.cfg.stake_usd_per_leg) / safe_price
+
+    def _live_enabled(self) -> bool:
+        return bool(self.enable_live and not self.dry_run and self.executor is not None)
+
+    def _trigger_kill_switch(self, *, ts_utc: str, market_key: str, reason_code: str, note: str) -> None:
+        if self.kill_switch_triggered:
+            return
+        self.kill_switch_triggered = True
+        self.kill_switch_reason = reason_code
+        cancel_result = {"cancelled": [], "errors": []}
+        if self.executor is not None:
+            try:
+                cancel_result = self.executor.cancel_open_orders()
+            except Exception as exc:
+                cancel_result = {"cancelled": [], "errors": [str(exc)]}
+        self._append_action(
+            ts_utc=ts_utc,
+            market_key=market_key,
+            action="critical_stop",
+            status="blocked",
+            reason_code=reason_code,
+            unwind_triggered=True,
+            note=f"{note} | cancel_result={cancel_result}",
+        )
+
     def _calc_unwind_loss_bps(self, *, entry_ask: float, unwind_bid: float | None) -> float:
         if unwind_bid is None or float(entry_ask) <= EPS:
             return float("inf")
@@ -400,6 +473,120 @@ class LiveMVPRunner:
             leg2_ask = yes_ask
             unwind_bid = snapshot["no_bid"]
 
+        if self._live_enabled():
+            try:
+                if not pending.leg2_token_id:
+                    raise ValueError("missing_leg2_token_id")
+                if pending.quantity <= EPS:
+                    raise ValueError("invalid_leg_quantity")
+                if self._within_bounds(leg2_ask):
+                    hedge_result = self.executor.place_leg2_hedge(  # type: ignore[union-attr]
+                        token_id=pending.leg2_token_id,
+                        price=float(leg2_ask),
+                        size=float(pending.quantity),
+                        timeout_ms=int(self.cfg.leg2_timeout_ms),
+                    )
+                else:
+                    hedge_result = LiveOrderResult(
+                        success=False,
+                        order_id="",
+                        status="blocked_price_bounds",
+                        filled_size=0.0,
+                        avg_price=0.0,
+                        latency_ms=0,
+                        error="leg2_price_out_of_bounds",
+                    )
+                pending.order_id_leg2 = hedge_result.order_id
+                pending.fill_status_leg2 = hedge_result.status
+                if hedge_result.success:
+                    pnl_delta = (1.0 - float(pending.leg1_ask) - float(hedge_result.avg_price)) * float(
+                        self.cfg.stake_usd_per_leg
+                    )
+                    self.daily_pnl += float(pnl_delta)
+                    self.trades_closed_by_market[market_key] += 1
+                    self.pending_by_market.pop(market_key, None)
+                    self._append_action(
+                        ts_utc=snapshot["ts_utc"],
+                        market_key=market_key,
+                        action="hedge_leg2",
+                        status="closed",
+                        reason_code="hedge_filled",
+                        leg1_side=pending.leg1_side,
+                        yes_ask=yes_ask,
+                        no_ask=no_ask,
+                        sum_ask=sum_ask,
+                        seconds_to_close=snapshot["seconds_to_close"],
+                        leg1_price=pending.leg1_ask,
+                        leg2_price=hedge_result.avg_price if hedge_result.avg_price > 0 else leg2_ask,
+                        order_id_leg1=pending.order_id_leg1,
+                        order_id_leg2=pending.order_id_leg2,
+                        fill_status_leg1=pending.fill_status_leg1 or "submitted",
+                        fill_status_leg2=pending.fill_status_leg2,
+                        hedge_latency_ms=hedge_result.latency_ms,
+                        unwind_triggered=False,
+                        pnl_delta=pnl_delta,
+                        note="live_hedge_success",
+                    )
+                    return
+
+                unwind_price_hint = _safe_float(unwind_bid, default=pending.leg1_ask) or float(pending.leg1_ask)
+                if not pending.leg1_token_id:
+                    raise ValueError("missing_leg1_token_id")
+                unwind_result = self.executor.unwind_leg1(  # type: ignore[union-attr]
+                    token_id=pending.leg1_token_id,
+                    price=float(unwind_price_hint),
+                    size=float(pending.quantity),
+                )
+                pending.fill_status_leg2 = hedge_result.status or "timeout"
+                if unwind_result.success:
+                    unwind_price = unwind_result.avg_price if unwind_result.avg_price > 0 else float(unwind_price_hint)
+                    pnl_delta = (float(unwind_price) - float(pending.leg1_ask)) * float(self.cfg.stake_usd_per_leg)
+                    self.daily_pnl += float(pnl_delta)
+                    self.trades_closed_by_market[market_key] += 1
+                    self.pending_by_market.pop(market_key, None)
+                    self._append_action(
+                        ts_utc=snapshot["ts_utc"],
+                        market_key=market_key,
+                        action="unwind_leg1",
+                        status="closed",
+                        reason_code="leg2_failed_unwind",
+                        leg1_side=pending.leg1_side,
+                        yes_ask=yes_ask,
+                        no_ask=no_ask,
+                        sum_ask=sum_ask,
+                        seconds_to_close=snapshot["seconds_to_close"],
+                        leg1_price=pending.leg1_ask,
+                        unwind_price=unwind_price,
+                        order_id_leg1=pending.order_id_leg1,
+                        order_id_leg2=pending.order_id_leg2,
+                        fill_status_leg1=pending.fill_status_leg1 or "submitted",
+                        fill_status_leg2=pending.fill_status_leg2,
+                        hedge_latency_ms=hedge_result.latency_ms,
+                        unwind_triggered=True,
+                        pnl_delta=pnl_delta,
+                        note=f"live_hedge_failed:{hedge_result.error or hedge_result.status}",
+                    )
+                    return
+
+                self._trigger_kill_switch(
+                    ts_utc=snapshot["ts_utc"],
+                    market_key=market_key,
+                    reason_code="kill_switch_unwind_failed",
+                    note=(
+                        f"hedge_error={hedge_result.error or hedge_result.status}; "
+                        f"unwind_error={unwind_result.error or unwind_result.status}"
+                    ),
+                )
+                return
+            except Exception as exc:
+                self._trigger_kill_switch(
+                    ts_utc=snapshot["ts_utc"],
+                    market_key=market_key,
+                    reason_code="kill_switch_execution_error",
+                    note=f"exception={exc}",
+                )
+                return
+
         if self._within_bounds(leg2_ask):
             pnl_delta = (1.0 - float(pending.leg1_ask) - float(leg2_ask)) * float(self.cfg.stake_usd_per_leg)
             self.daily_pnl += float(pnl_delta)
@@ -418,6 +605,12 @@ class LiveMVPRunner:
                 seconds_to_close=snapshot["seconds_to_close"],
                 leg1_price=pending.leg1_ask,
                 leg2_price=leg2_ask,
+                order_id_leg1=pending.order_id_leg1,
+                order_id_leg2=pending.order_id_leg2,
+                fill_status_leg1=pending.fill_status_leg1,
+                fill_status_leg2="simulated_fill",
+                hedge_latency_ms=0,
+                unwind_triggered=False,
                 pnl_delta=pnl_delta,
                 note="mvp_hedge_success",
             )
@@ -455,6 +648,12 @@ class LiveMVPRunner:
             seconds_to_close=snapshot["seconds_to_close"],
             leg1_price=pending.leg1_ask,
             unwind_price=unwind_price,
+            order_id_leg1=pending.order_id_leg1,
+            order_id_leg2=pending.order_id_leg2,
+            fill_status_leg1=pending.fill_status_leg1,
+            fill_status_leg2=pending.fill_status_leg2,
+            hedge_latency_ms=0,
+            unwind_triggered=True,
             pnl_delta=pnl_delta,
             note=note,
         )
@@ -466,6 +665,63 @@ class LiveMVPRunner:
         yes_ask = float(snapshot["yes_ask"])
         no_ask = float(snapshot["no_ask"])
         leg1_side, leg1_ask, leg1_bid, reason_code = self._pick_leg1(snapshot=snapshot)
+        token_up = str(snapshot.get("token_up", "")).strip()
+        token_down = str(snapshot.get("token_down", "")).strip()
+        leg1_token_id = token_up if leg1_side == "yes" else token_down
+        leg2_token_id = token_down if leg1_side == "yes" else token_up
+        leg_quantity = self._size_for_leg(leg1_ask)
+        order_id_leg1 = ""
+        fill_status_leg1 = "simulated_open"
+
+        if self._live_enabled():
+            if not leg1_token_id or not leg2_token_id:
+                self._append_action(
+                    ts_utc=ts_utc,
+                    market_key=market_key,
+                    action="skip_entry",
+                    status="blocked",
+                    reason_code="blocked_missing_token_ids",
+                    leg1_side=leg1_side,
+                    yes_ask=yes_ask,
+                    no_ask=no_ask,
+                    sum_ask=float(snapshot["sum_ask"]),
+                    seconds_to_close=int(snapshot["seconds_to_close"]),
+                    note="token_up/token_down absent in snapshot",
+                )
+                return
+            try:
+                leg1_result = self.executor.place_leg1_order(  # type: ignore[union-attr]
+                    token_id=leg1_token_id,
+                    price=float(leg1_ask),
+                    size=float(leg_quantity),
+                )
+            except Exception as exc:
+                self._trigger_kill_switch(
+                    ts_utc=ts_utc,
+                    market_key=market_key,
+                    reason_code="kill_switch_leg1_submit_error",
+                    note=f"exception={exc}",
+                )
+                return
+            if not leg1_result.success:
+                self._append_action(
+                    ts_utc=ts_utc,
+                    market_key=market_key,
+                    action="skip_entry",
+                    status="blocked",
+                    reason_code="blocked_leg1_rejected",
+                    leg1_side=leg1_side,
+                    yes_ask=yes_ask,
+                    no_ask=no_ask,
+                    sum_ask=float(snapshot["sum_ask"]),
+                    seconds_to_close=int(snapshot["seconds_to_close"]),
+                    order_id_leg1=leg1_result.order_id,
+                    fill_status_leg1=leg1_result.status,
+                    note=f"leg1_error={leg1_result.error}",
+                )
+                return
+            order_id_leg1 = leg1_result.order_id
+            fill_status_leg1 = leg1_result.status or "submitted"
 
         pending = PendingTrade(
             market_key=market_key,
@@ -476,6 +732,11 @@ class LiveMVPRunner:
             leg1_ask=float(leg1_ask),
             leg1_bid=None if leg1_bid is None else float(leg1_bid),
             sum_ask_entry=float(snapshot["sum_ask"]),
+            leg1_token_id=leg1_token_id,
+            leg2_token_id=leg2_token_id,
+            quantity=float(leg_quantity),
+            order_id_leg1=order_id_leg1,
+            fill_status_leg1=fill_status_leg1,
         )
         self.pending_by_market[market_key] = pending
         self._append_action(
@@ -490,7 +751,10 @@ class LiveMVPRunner:
             sum_ask=float(snapshot["sum_ask"]),
             seconds_to_close=int(snapshot["seconds_to_close"]),
             leg1_price=leg1_ask,
-            note="mvp_entry",
+            order_id_leg1=order_id_leg1,
+            fill_status_leg1=fill_status_leg1,
+            unwind_triggered=False,
+            note="mvp_entry_live" if self._live_enabled() else "mvp_entry",
         )
 
     def _process_snapshot(self, snapshot: dict[str, Any]) -> None:
@@ -504,6 +768,22 @@ class LiveMVPRunner:
         existing = self.pending_by_market.get(market_key)
         if existing is not None:
             self._attempt_hedge_or_unwind(snapshot=snapshot, pending=existing)
+            return
+
+        if self.kill_switch_triggered:
+            self._append_action(
+                ts_utc=ts_utc,
+                market_key=market_key,
+                action="skip_entry",
+                status="blocked",
+                reason_code="kill_switch_active",
+                yes_ask=yes_ask,
+                no_ask=no_ask,
+                sum_ask=sum_ask,
+                seconds_to_close=seconds_to_close,
+                unwind_triggered=True,
+                note=self.kill_switch_reason or "kill_switch_triggered",
+            )
             return
 
         if float(self.daily_pnl) <= -float(self.cfg.max_daily_loss_usd):
@@ -649,8 +929,9 @@ class LiveMVPRunner:
             self._attempt_hedge_or_unwind(snapshot=snapshot, pending=pending)
 
     def run(self) -> int:
+        mode = "live" if self._live_enabled() else ("dry-run" if self.dry_run else "paper")
         print(
-            f"[live-mvp] start market={self.cfg.market_scope} stake={self.cfg.stake_usd_per_leg} "
+            f"[live-mvp] start mode={mode} market={self.cfg.market_scope} stake={self.cfg.stake_usd_per_leg} "
             f"sum_ask<={self.cfg.max_sum_ask} timeout_ms={self.cfg.leg2_timeout_ms} "
             f"max_daily_loss_usd={self.cfg.max_daily_loss_usd} "
             f"cutoff_sec={self.cfg.entry_cutoff_sec} max_spread={self.cfg.max_spread} "
@@ -681,6 +962,10 @@ class LiveMVPRunner:
                     f"daily_pnl={self.daily_pnl:.6f}"
                 )
 
+                if self.kill_switch_triggered:
+                    print(f"[live-mvp] kill-switch triggered reason={self.kill_switch_reason}")
+                    break
+
                 if self.runtime_sec > 0 and (time.time() - started) >= self.runtime_sec:
                     break
                 time.sleep(float(self.cfg.poll_interval_sec))
@@ -693,6 +978,8 @@ class LiveMVPRunner:
             f"actions_logged={self.actions_logged}"
         )
         print(f"[live-mvp] report_file={self.report_file}")
+        if self.kill_switch_triggered:
+            return 2
         return 0
 
 
@@ -702,17 +989,53 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--runtime-sec", type=int, default=0, help="0 = run until Ctrl+C")
     parser.add_argument("--raw-dir", default="", help="Optional override for config raw_dir")
     parser.add_argument("--report-file", default="", help="Optional override for config report_file")
+    parser.add_argument("--enable-live", default="false", help="true|false (real orders only when true + confirm token)")
+    parser.add_argument("--confirm-live", default="", help="Required token for live: I_UNDERSTAND_THE_RISK")
+    parser.add_argument("--dry-run", default="true", help="true|false")
+    parser.add_argument("--env-file", default=".env", help="Path to env file for live mode")
     return parser.parse_args(argv)
+
+
+def _parse_bool(value: Any, *, default: bool = False) -> bool:
+    text = str(value).strip().lower()
+    if not text:
+        return bool(default)
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off"}:
+        return False
+    return bool(default)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     cfg = load_live_mvp_config(args.config)
+    enable_live = _parse_bool(args.enable_live, default=False)
+    dry_run = _parse_bool(args.dry_run, default=True)
+    if enable_live and str(args.confirm_live).strip() != LIVE_CONFIRMATION_TOKEN:
+        print("[live-mvp] abort: invalid --confirm-live token for live mode")
+        return 2
+
+    live_orders_enabled = bool(enable_live and not dry_run)
+    executor: PolymarketLiveExecutor | None = None
+    if live_orders_enabled:
+        try:
+            auth = PolymarketAuthConfig.from_env(env_file=str(args.env_file))
+        except Exception as exc:
+            print(f"[live-mvp] abort: env validation failed: {exc}")
+            return 2
+        executor = PolymarketLiveExecutor(auth=auth, dry_run=False)
+    else:
+        executor = PolymarketLiveExecutor(auth=None, dry_run=True)
+
     runner = LiveMVPRunner(
         cfg=cfg,
         runtime_sec=int(args.runtime_sec),
         raw_dir_override=(args.raw_dir or None),
         report_file_override=(args.report_file or None),
+        executor=executor,
+        enable_live=enable_live,
+        dry_run=dry_run,
     )
     return runner.run()
 
