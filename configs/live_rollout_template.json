@@ -1,0 +1,23 @@
+{
+  "execution_mode": "paper",
+  "market_scope": "SOL5M",
+  "stake_usd_per_leg": 1.0,
+  "max_trades_per_market": 1,
+  "max_open_positions": 1,
+  "runtime_sec_initial": 300,
+  "kill_switch_enabled": true,
+  "circuit_breaker_enabled": true,
+  "thresholds": {
+    "hedge_failed_rate_max": 0.02,
+    "max_drawdown_pct_max": 12.0,
+    "p99_loss_max": 0.4
+  },
+  "rollback": {
+    "enabled": true,
+    "reason_codes": [
+      "rollback_on_hedge_failed_rate_breach",
+      "rollback_on_max_drawdown_breach",
+      "rollback_on_p99_loss_breach"
+    ]
+  }
+}
