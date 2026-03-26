@@ -37,9 +37,9 @@ class EntryPolicyConfig:
     min_depth_buffer_mult: float = 1.2
     max_trades_per_market: int = 1
     max_unwind_loss_bps: float = 120.0
-    regime_timeouts_ms_high_edge: int = 1200
-    regime_timeouts_ms_mid_edge: int = 2500
-    regime_timeouts_ms_low_edge: int = 3000
+    regime_timeouts_ms_high_edge: int = 2000
+    regime_timeouts_ms_mid_edge: int = 3500
+    regime_timeouts_ms_low_edge: int = 4000
 
     def __post_init__(self) -> None:
         if not (0.0 < float(self.high_edge_threshold) <= float(self.mid_edge_threshold) <= float(self.low_edge_threshold)):
@@ -78,9 +78,9 @@ class EntryPolicyConfig:
             min_depth_buffer_mult=float(raw.get("min_depth_buffer_mult", 1.2)),
             max_trades_per_market=int(raw.get("max_trades_per_market", 1)),
             max_unwind_loss_bps=float(raw.get("max_unwind_loss_bps", 120.0)),
-            regime_timeouts_ms_high_edge=int(timeouts_raw.get("high_edge", 1200)),
-            regime_timeouts_ms_mid_edge=int(timeouts_raw.get("mid_edge", 2500)),
-            regime_timeouts_ms_low_edge=int(timeouts_raw.get("low_edge", 3000)),
+            regime_timeouts_ms_high_edge=int(timeouts_raw.get("high_edge", 2000)),
+            regime_timeouts_ms_mid_edge=int(timeouts_raw.get("mid_edge", 3500)),
+            regime_timeouts_ms_low_edge=int(timeouts_raw.get("low_edge", 4000)),
         )
 
 

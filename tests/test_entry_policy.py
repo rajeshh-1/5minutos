@@ -26,9 +26,9 @@ def _cfg() -> EntryPolicyConfig:
         min_depth_buffer_mult=1.2,
         max_trades_per_market=1,
         max_unwind_loss_bps=120.0,
-        regime_timeouts_ms_high_edge=1200,
-        regime_timeouts_ms_mid_edge=2500,
-        regime_timeouts_ms_low_edge=3000,
+        regime_timeouts_ms_high_edge=2000,
+        regime_timeouts_ms_mid_edge=3500,
+        regime_timeouts_ms_low_edge=4000,
     )
 
 
@@ -105,7 +105,7 @@ def test_regime_timeouts_and_entry_modes() -> None:
     )
     assert high.allow_entry
     assert high.reason_code == ENTERED_HIGH_EDGE
-    assert high.leg2_timeout_ms == 1200
+    assert high.leg2_timeout_ms == 2000
 
     mid = evaluate_entry(
         cfg=cfg,
@@ -120,7 +120,7 @@ def test_regime_timeouts_and_entry_modes() -> None:
     )
     assert mid.allow_entry
     assert mid.reason_code == ENTERED_MID_EDGE
-    assert mid.leg2_timeout_ms == 2500
+    assert mid.leg2_timeout_ms == 3500
 
     low = evaluate_entry(
         cfg=cfg,
@@ -135,7 +135,7 @@ def test_regime_timeouts_and_entry_modes() -> None:
     )
     assert low.allow_entry
     assert low.reason_code == ENTERED_LOW_EDGE
-    assert low.leg2_timeout_ms == 3000
+    assert low.leg2_timeout_ms == 4000
 
 
 def test_max_trades_per_market_respected() -> None:
@@ -152,4 +152,3 @@ def test_max_trades_per_market_respected() -> None:
     )
     assert not decision.allow_entry
     assert decision.reason_code == BLOCKED_BY_TRADE_LIMIT
-

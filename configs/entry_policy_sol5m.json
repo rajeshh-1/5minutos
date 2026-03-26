@@ -9,8 +9,8 @@
   "max_trades_per_market": 1,
   "max_unwind_loss_bps": 120,
   "regime_timeouts_ms": {
-    "high_edge": 1200,
-    "mid_edge": 2500,
-    "low_edge": 3000
+    "high_edge": 2000,
+    "mid_edge": 3500,
+    "low_edge": 4000
   }
 }

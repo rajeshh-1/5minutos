@@ -18,9 +18,9 @@ Aplicar filtro de entrada por regime para reduzir entradas ruins no paper runtim
   - `depth_no >= stake * 1.2`
 
 ## Timeouts por regime
-- `HIGH_EDGE`: `1200ms`
-- `MID_EDGE`: `2500ms`
-- `LOW_EDGE`: `3000ms`
+- `HIGH_EDGE`: `2000ms`
+- `MID_EDGE`: `3500ms`
+- `LOW_EDGE`: `4000ms`
 
 ## Protecoes
 - `max_trades_per_market = 1`
