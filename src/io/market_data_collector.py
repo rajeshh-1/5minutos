@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.parse
 import urllib.request
@@ -208,6 +209,32 @@ class MarketDataCollector:
         self.discarded_in_cycle = 0
         self._load_checkpoint()
 
+    def _atomic_write_json(self, *, target: Path, payload: dict[str, Any]) -> bool:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        stamp = f"{int(time.time() * 1000)}.{os.getpid()}"
+        tmp = target.with_suffix(target.suffix + f".{stamp}.tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+        max_attempts = 6
+        for attempt in range(max_attempts):
+            try:
+                tmp.replace(target)
+                return True
+            except PermissionError:
+                if attempt < max_attempts - 1:
+                    time.sleep(0.05 * (2**attempt))
+                    continue
+            except OSError:
+                if attempt < max_attempts - 1:
+                    time.sleep(0.05 * (2**attempt))
+                    continue
+            break
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+        self.storage.add_warning(f"atomic_write_failed:{target.name}")
+        return False
+
     def _write_last_closed_market(self, closed_market: ResolvedMarket, *, now_utc: datetime) -> None:
         if self.last_closed_file is None:
             return
@@ -223,10 +250,7 @@ class MarketDataCollector:
             "market_slug": str(closed_market.slug or "").strip(),
             "generated_at_utc": iso_utc(now_utc),
         }
-        self.last_closed_file.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.last_closed_file.with_suffix(self.last_closed_file.suffix + ".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
-        tmp.replace(self.last_closed_file)
+        self._atomic_write_json(target=self.last_closed_file, payload=payload)
 
     def _build_slug(self, now_utc: datetime) -> str:
         if self.config.market.slug_static:
@@ -320,10 +344,7 @@ class MarketDataCollector:
             },
             "seen_trade_ids": list(sorted(self.seen_trade_ids))[-5000:],
         }
-        self.checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.checkpoint_file.with_suffix(self.checkpoint_file.suffix + ".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
-        tmp.replace(self.checkpoint_file)
+        self._atomic_write_json(target=self.checkpoint_file, payload=payload)
 
     def _resolve_market(self, *, slug: str) -> None:
         response = self._http_get_json(f"{self.config.endpoints.gamma_host}/events", params={"slug": slug})
