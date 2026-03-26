@@ -12,10 +12,16 @@ from pathlib import Path
 from typing import Any
 
 from src.core.config import TARGET_MODE_NET, StrategyConfig
-from src.core.reason_codes import LEG1_OPENED, LEG2_HEDGE_FILLED
+from src.core.reason_codes import (
+    BELOW_TARGET_PROFIT,
+    LEG1_OPENED,
+    LEG2_HEDGE_FILLED,
+    LEG2_NOT_FOUND_TIMEOUT,
+    UNWIND_ON_TIMEOUT,
+)
 from src.runtime.checkpoint_store import CheckpointStore
-from src.runtime.metrics import compute_metrics
-from src.strategy.state_machine import LeggingState, LeggingStateMachine
+from src.runtime.metrics import compute_live_metrics_from_aggregates
+from src.strategy.state_machine import AuditRecord, LeggingState, LeggingStateMachine
 
 
 @dataclass
@@ -23,6 +29,14 @@ class MarketSession:
     machine: LeggingStateMachine
     leg1_side: str
     leg1_open_price: float
+
+
+SESSION_AGE_TIMEOUT = "session_age_timeout"
+TIMEOUT_REASON_CODES = {
+    LEG2_NOT_FOUND_TIMEOUT,
+    UNWIND_ON_TIMEOUT,
+    SESSION_AGE_TIMEOUT,
+}
 
 
 def _iso_utc_now() -> str:
@@ -104,6 +118,8 @@ class PaperLiveEngine:
         seed: int = 42,
         checkpoint_store: CheckpointStore | None = None,
         use_checkpoint: bool = True,
+        max_log_buffer: int = 2000,
+        max_session_age_sec: int = 180,
     ) -> None:
         self.config = config
         self.raw_dir = Path(raw_dir)
@@ -112,6 +128,8 @@ class PaperLiveEngine:
         self.rng = random.Random(int(seed))
         self.checkpoint_store = checkpoint_store
         self.use_checkpoint = bool(use_checkpoint)
+        self.max_log_buffer = max(1, int(max_log_buffer))
+        self.max_session_age_sec = max(1, int(max_session_age_sec))
 
         self.offsets: dict[str, int] = {}
         if self.checkpoint_store is not None and self.use_checkpoint:
@@ -122,6 +140,10 @@ class PaperLiveEngine:
         self.reason_counts: Counter[str] = Counter()
         self.final_state_counts: Counter[str] = Counter()
         self.trade_log_rows: list[dict[str, Any]] = []
+        self._trade_flags_by_market: dict[str, dict[str, bool]] = {}
+        self.close_pnls: list[float] = []
+        self.timeout_trade_count = 0
+        self.below_target_trade_count = 0
 
         self.trades_attempted = 0
         self.leg1_opened = 0
@@ -135,15 +157,30 @@ class PaperLiveEngine:
         self.metrics_file = self.out_dir / "metrics_live.json"
         self.events_log_file = self.out_dir / "events.log"
         self.top_file = self.out_dir / "top_policies_live.csv"
+        self.trade_log_file = self.out_dir / "trade_log_live.csv"
 
     def _resolve_source_files(self) -> dict[str, list[Path]]:
-        base_a = self.raw_dir / "sol5m"
-        base_b = self.raw_dir
-        base = base_a if base_a.exists() else base_b
+        preferred = self.raw_dir / "sol5m"
+        candidate_dirs: list[Path] = []
+        if preferred.exists():
+            candidate_dirs.append(preferred)
+        if self.raw_dir.exists():
+            candidate_dirs.append(self.raw_dir)
+
         out: dict[str, list[Path]] = {"trades": [], "prices": [], "orderbook": []}
         for kind in ("trades", "prices", "orderbook"):
-            out[kind].extend(sorted(base.glob(f"{kind}_*.jsonl")))
-            out[kind].extend(sorted(base.glob(f"{kind}_*.csv")))
+            seen_names: set[str] = set()
+            seen_paths: set[str] = set()
+            for base in candidate_dirs:
+                matches = sorted(base.glob(f"{kind}_*.jsonl")) + sorted(base.glob(f"{kind}_*.csv"))
+                for path in matches:
+                    resolved = str(path.resolve())
+                    name_key = path.name.lower()
+                    if resolved in seen_paths or name_key in seen_names:
+                        continue
+                    seen_paths.add(resolved)
+                    seen_names.add(name_key)
+                    out[kind].append(path)
         return out
 
     def _load_csv_header(self, path: Path) -> list[str]:
@@ -212,6 +249,7 @@ class PaperLiveEngine:
         p2_price: float | None,
         close_pnl_estimate: float = 0.0,
     ) -> None:
+        market_key = str(event_row.get("market_key", ""))
         for rec in session.machine.audit_log[old_len:]:
             pnl_estimate = close_pnl_estimate if rec.action == "close_position" else 0.0
             self.trade_log_rows.append(
@@ -228,12 +266,55 @@ class PaperLiveEngine:
                 }
             )
             self.reason_counts[rec.reason_code] += 1
+
+            flags = self._trade_flags_by_market.setdefault(market_key, {"timeout": False, "below_target": False})
+            if rec.reason_code in TIMEOUT_REASON_CODES:
+                flags["timeout"] = True
+            if rec.reason_code == BELOW_TARGET_PROFIT:
+                flags["below_target"] = True
+
             if rec.reason_code == LEG1_OPENED and rec.action == "open_leg1":
                 self.leg1_opened += 1
             if rec.reason_code == LEG2_HEDGE_FILLED and rec.action == "try_open_leg2":
                 self.leg2_hedged += 1
             if rec.to_state == LeggingState.UNWIND:
                 self.unwind_count += 1
+            if rec.action == "close_position":
+                self.close_pnls.append(float(pnl_estimate))
+                if flags.get("timeout", False):
+                    self.timeout_trade_count += 1
+                if flags.get("below_target", False):
+                    self.below_target_trade_count += 1
+                self._trade_flags_by_market.pop(market_key, None)
+
+        self._flush_trade_log_buffer_if_needed()
+
+    def _flush_trade_log_buffer_if_needed(self, *, force: bool = False) -> None:
+        if not self.trade_log_rows:
+            return
+        if not force and len(self.trade_log_rows) < self.max_log_buffer:
+            return
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        write_header = not self.trade_log_file.exists() or self.trade_log_file.stat().st_size == 0
+        with self.trade_log_file.open("a", encoding="utf-8", newline="") as fh:
+            writer = csv.DictWriter(
+                fh,
+                fieldnames=[
+                    "event_ts",
+                    "market_key",
+                    "action",
+                    "state_from",
+                    "state_to",
+                    "p1_price",
+                    "p2_price",
+                    "pnl_estimate",
+                    "reason_code",
+                ],
+            )
+            if write_header:
+                writer.writeheader()
+            writer.writerows(self.trade_log_rows)
+        self.trade_log_rows.clear()
 
     def _choose_leg1_side_and_prices(self, row: dict[str, Any]) -> tuple[str, float, float] | None:
         up = _safe_float(row.get("up_price"), default=None)
@@ -251,6 +332,28 @@ class PaperLiveEngine:
         if self.rng.random() < 0.5:
             return "up", float(up), float(down)
         return "down", float(down), float(up)
+
+    def _apply_session_age_timeout(self, *, session: MarketSession, logical_ts: int) -> bool:
+        sm = session.machine
+        if sm.state != LeggingState.LEG1_OPEN or sm.leg1_open_ts is None:
+            return False
+        age_sec = max(0, int(logical_ts) - int(sm.leg1_open_ts))
+        if age_sec <= int(self.max_session_age_sec):
+            return False
+        from_state = sm.state
+        sm.state = LeggingState.UNWIND
+        sm._last_unwind_reason = SESSION_AGE_TIMEOUT
+        sm.audit_log.append(
+            AuditRecord(
+                logical_ts=int(logical_ts),
+                from_state=from_state,
+                to_state=LeggingState.UNWIND,
+                action="session_age_timeout",
+                reason_code=SESSION_AGE_TIMEOUT,
+                detail=f"age_sec={age_sec} > max_session_age_sec={int(self.max_session_age_sec)}",
+            )
+        )
+        return True
 
     def _process_prices(self, price_rows: list[dict[str, Any]]) -> None:
         for row in price_rows:
@@ -299,14 +402,26 @@ class PaperLiveEngine:
                 p2_cur = float(up)
 
             old_len = len(session.machine.audit_log)
-            session.machine.try_open_leg2(p2_price=p2_cur, logical_ts=logical_ts)
-            self._append_records(
-                old_len=old_len,
-                session=session,
-                event_row=row,
-                p1_price=session.leg1_open_price,
-                p2_price=p2_cur,
-            )
+            aged_out = self._apply_session_age_timeout(session=session, logical_ts=logical_ts)
+            if aged_out:
+                self._append_records(
+                    old_len=old_len,
+                    session=session,
+                    event_row=row,
+                    p1_price=session.leg1_open_price,
+                    p2_price=p2_cur,
+                )
+
+            old_len = len(session.machine.audit_log)
+            if session.machine.state == LeggingState.LEG1_OPEN:
+                session.machine.try_open_leg2(p2_price=p2_cur, logical_ts=logical_ts)
+                self._append_records(
+                    old_len=old_len,
+                    session=session,
+                    event_row=row,
+                    p1_price=session.leg1_open_price,
+                    p2_price=p2_cur,
+                )
 
             if session.machine.state == LeggingState.LEG1_OPEN:
                 loss_bps = _calc_loss_bps(session.leg1_open_price, p1_cur)
@@ -346,16 +461,15 @@ class PaperLiveEngine:
                 self.market_sessions.pop(market_key, None)
 
     def _build_metrics_snapshot(self, rows_read_cycle: dict[str, int]) -> dict[str, Any]:
-        summary = {
-            "trades_attempted": int(self.trades_attempted),
-            "leg1_opened": int(self.leg1_opened),
-            "leg2_hedged": int(self.leg2_hedged),
-            "unwind_count": int(self.unwind_count),
-            "pnl_total": float(self.pnl_total),
-        }
-        metrics = compute_metrics(
-            summary=summary,
-            trade_log_rows=self.trade_log_rows,
+        metrics = compute_live_metrics_from_aggregates(
+            trades_attempted=int(self.trades_attempted),
+            leg1_opened=int(self.leg1_opened),
+            leg2_hedged=int(self.leg2_hedged),
+            unwind_count=int(self.unwind_count),
+            pnl_total=float(self.pnl_total),
+            close_pnls=list(self.close_pnls),
+            timeout_trades=int(self.timeout_trade_count),
+            below_target_trades=int(self.below_target_trade_count),
             reason_code_counts=dict(self.reason_counts),
         )
         snapshot = {
@@ -366,6 +480,7 @@ class PaperLiveEngine:
             "active_markets": len(self.market_sessions),
             "closed_trades": int(self.closed_trades),
             "final_state_counts": dict(self.final_state_counts),
+            "buffered_trade_rows": len(self.trade_log_rows),
             "metrics": metrics,
         }
         return snapshot
@@ -433,6 +548,7 @@ class PaperLiveEngine:
         rows_read_cycle["total"] = rows_read_cycle["prices"] + rows_read_cycle["trades"] + rows_read_cycle["orderbook"]
 
         self._process_prices(price_rows)
+        self._flush_trade_log_buffer_if_needed()
         snapshot = self._build_metrics_snapshot(rows_read_cycle=rows_read_cycle)
         self._write_snapshot(snapshot)
         self._append_event_log(rows_read_cycle=rows_read_cycle, metrics=snapshot["metrics"])
@@ -443,6 +559,7 @@ class PaperLiveEngine:
         return snapshot
 
     def shutdown(self) -> None:
+        self._flush_trade_log_buffer_if_needed(force=True)
         snapshot = dict(self.last_snapshot) if self.last_snapshot else self._build_metrics_snapshot(
             rows_read_cycle={"prices": 0, "trades": 0, "orderbook": 0, "total": 0}
         )
@@ -478,4 +595,3 @@ class PaperLiveEngine:
         finally:
             self.shutdown()
         return self.last_snapshot
-

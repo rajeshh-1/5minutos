@@ -1,11 +1,36 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
+
+
+CHECKPOINT_VERSION = 1
+
+
+def _normalize_offsets(raw: object) -> dict[str, int]:
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, int] = {}
+    for key, value in raw.items():
+        try:
+            out[str(key)] = int(value)
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def _calc_checksum(*, version: int, offsets: dict[str, int]) -> str:
+    canonical = {
+        "version": int(version),
+        "offsets": {k: int(offsets[k]) for k in sorted(offsets)},
+    }
+    encoded = json.dumps(canonical, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 class CheckpointStore:
@@ -47,19 +72,33 @@ class CheckpointStore:
             if not isinstance(payload, dict):
                 print(f"[checkpoint] warning: invalid checkpoint format in {self.path}")
                 return {}
-            out: dict[str, int] = {}
-            for key, value in payload.items():
-                try:
-                    out[str(key)] = int(value)
-                except (TypeError, ValueError):
-                    continue
-            return out
+            # Backward compatibility with legacy offset-only format.
+            if "offsets" not in payload:
+                return _normalize_offsets(payload)
+
+            version = payload.get("version")
+            offsets = _normalize_offsets(payload.get("offsets", {}))
+            checksum = str(payload.get("checksum", ""))
+            if version != CHECKPOINT_VERSION:
+                print(
+                    f"[checkpoint] warning: unsupported version={version} in {self.path}, expected={CHECKPOINT_VERSION}"
+                )
+                return {}
+            expected_checksum = _calc_checksum(version=int(version), offsets=offsets)
+            if checksum != expected_checksum:
+                print(f"[checkpoint] warning: checksum mismatch in {self.path}, checkpoint ignored")
+                return {}
+            return offsets
 
     def save(self, offsets: dict[str, int]) -> None:
         with self._lock():
-            payload = {str(k): int(v) for k, v in offsets.items()}
+            normalized = _normalize_offsets(offsets)
+            payload = {
+                "version": CHECKPOINT_VERSION,
+                "offsets": normalized,
+                "checksum": _calc_checksum(version=CHECKPOINT_VERSION, offsets=normalized),
+            }
             tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
             self.path.parent.mkdir(parents=True, exist_ok=True)
             tmp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
             os.replace(str(tmp_path), str(self.path))
-

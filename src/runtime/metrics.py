@@ -24,6 +24,22 @@ class GoNoGoDecision:
     blockers: list[str]
 
 
+@dataclass(frozen=True)
+class StabilityThresholds:
+    pnl_per_trade_std_max: float = 0.02
+    hedge_success_rate_std_max: float = 0.10
+
+
+@dataclass(frozen=True)
+class RobustnessWeights:
+    pnl_per_trade: float = 0.35
+    hedge_success_rate: float = 0.25
+    hedge_failed_rate: float = 0.15
+    max_drawdown_pct: float = 0.10
+    p99_loss: float = 0.10
+    variance_penalty: float = 0.05
+
+
 def _safe_float(value: Any, default: float = 0.0) -> float:
     try:
         return float(value)
@@ -46,6 +62,20 @@ def quantile(values: list[float], q: float) -> float:
     w_hi = pos - lo
     w_lo = 1.0 - w_hi
     return (ordered[lo] * w_lo) + (ordered[hi] * w_hi)
+
+
+def mean(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return float(sum(float(v) for v in values) / float(len(values)))
+
+
+def stddev(values: list[float]) -> float:
+    if len(values) <= 1:
+        return 0.0
+    avg = mean(values)
+    var = sum((float(v) - avg) ** 2 for v in values) / float(len(values))
+    return float(math.sqrt(max(0.0, var)))
 
 
 def max_drawdown_pct(pnl_series: list[float], initial_equity: float = 1.0) -> float:
@@ -151,6 +181,50 @@ def compute_metrics(
     }
 
 
+def compute_live_metrics_from_aggregates(
+    *,
+    trades_attempted: int,
+    leg1_opened: int,
+    leg2_hedged: int,
+    unwind_count: int,
+    pnl_total: float,
+    close_pnls: list[float],
+    timeout_trades: int,
+    below_target_trades: int,
+    reason_code_counts: dict[str, int],
+) -> dict[str, Any]:
+    closed_trades = len(close_pnls)
+    pnl_per_trade = (float(pnl_total) / float(closed_trades)) if closed_trades > 0 else 0.0
+    losses = [max(0.0, -float(p)) for p in close_pnls]
+    p95_loss = quantile(losses, 0.95)
+    p99_loss = quantile(losses, 0.99)
+    drawdown_pct = max_drawdown_pct(close_pnls, initial_equity=1.0)
+
+    hedge_success_rate = (float(leg2_hedged) / float(leg1_opened)) if leg1_opened > 0 else 0.0
+    hedge_failed = max(0, int(leg1_opened) - int(leg2_hedged))
+    hedge_failed_rate = (float(hedge_failed) / float(leg1_opened)) if leg1_opened > 0 else 0.0
+    timeout_rate = (float(timeout_trades) / float(leg1_opened)) if leg1_opened > 0 else 0.0
+    below_target_profit_rate = (float(below_target_trades) / float(leg1_opened)) if leg1_opened > 0 else 0.0
+
+    top_reason_codes = sorted(reason_code_counts.items(), key=lambda kv: kv[1], reverse=True)[:10]
+    return {
+        "trades_attempted": int(trades_attempted),
+        "leg1_opened": int(leg1_opened),
+        "leg2_hedged": int(leg2_hedged),
+        "hedge_success_rate": round(hedge_success_rate, 10),
+        "unwind_count": int(unwind_count),
+        "pnl_total": round(float(pnl_total), 10),
+        "pnl_per_trade": round(pnl_per_trade, 10),
+        "max_drawdown_pct": round(drawdown_pct, 10),
+        "p95_loss": round(p95_loss, 10),
+        "p99_loss": round(p99_loss, 10),
+        "hedge_failed_rate": round(hedge_failed_rate, 10),
+        "timeout_rate": round(timeout_rate, 10),
+        "below_target_profit_rate": round(below_target_profit_rate, 10),
+        "top_reason_codes": top_reason_codes,
+    }
+
+
 def evaluate_go_no_go(metrics: dict[str, Any], thresholds: ReadinessThresholds, critical_errors: list[str] | None = None) -> GoNoGoDecision:
     blockers: list[str] = []
     critical = list(critical_errors or [])
@@ -172,6 +246,54 @@ def evaluate_go_no_go(metrics: dict[str, Any], thresholds: ReadinessThresholds, 
 
     status = "GO" if not blockers else "NO_GO"
     return GoNoGoDecision(status=status, blockers=blockers)
+
+
+def evaluate_hardened_go_no_go(
+    *,
+    metrics: dict[str, Any],
+    readiness_thresholds: ReadinessThresholds,
+    stability_thresholds: StabilityThresholds,
+    pnl_per_trade_std: float,
+    hedge_success_rate_std: float,
+    critical_errors: list[str] | None = None,
+) -> GoNoGoDecision:
+    base = evaluate_go_no_go(metrics, readiness_thresholds, critical_errors=critical_errors)
+    blockers = list(base.blockers)
+    if float(pnl_per_trade_std) > float(stability_thresholds.pnl_per_trade_std_max):
+        blockers.append(
+            f"pnl_per_trade_std {float(pnl_per_trade_std):.6f} > {float(stability_thresholds.pnl_per_trade_std_max):.6f}"
+        )
+    if float(hedge_success_rate_std) > float(stability_thresholds.hedge_success_rate_std_max):
+        blockers.append(
+            "hedge_success_rate_std "
+            f"{float(hedge_success_rate_std):.6f} > {float(stability_thresholds.hedge_success_rate_std_max):.6f}"
+        )
+    status = "GO" if not blockers else "NO_GO"
+    return GoNoGoDecision(status=status, blockers=blockers)
+
+
+def compute_robustness_score(
+    *,
+    pnl_per_trade: float,
+    hedge_success_rate: float,
+    hedge_failed_rate: float,
+    max_drawdown_pct: float,
+    p99_loss: float,
+    pnl_per_trade_std: float,
+    hedge_success_rate_std: float,
+    weights: RobustnessWeights | None = None,
+) -> float:
+    w = weights or RobustnessWeights()
+    variance_penalty = max(0.0, float(pnl_per_trade_std)) + max(0.0, float(hedge_success_rate_std))
+    score = (
+        (float(w.pnl_per_trade) * float(pnl_per_trade))
+        + (float(w.hedge_success_rate) * float(hedge_success_rate))
+        - (float(w.hedge_failed_rate) * float(hedge_failed_rate))
+        - (float(w.max_drawdown_pct) * (max(0.0, float(max_drawdown_pct)) / 100.0))
+        - (float(w.p99_loss) * max(0.0, float(p99_loss)))
+        - (float(w.variance_penalty) * variance_penalty)
+    )
+    return round(float(score), 10)
 
 
 def evaluate_readiness_from_files(
@@ -214,4 +336,3 @@ def evaluate_readiness_from_files(
         "metrics": metrics,
         "critical_errors": critical_errors,
     }
-

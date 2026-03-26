@@ -23,6 +23,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--out-dir", default="reports/live")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--no-checkpoint", action="store_true", help="Disable checkpoint persistence.")
+    parser.add_argument(
+        "--max-log-buffer",
+        type=int,
+        default=2000,
+        help="Maximum in-memory trade log rows before flush to disk.",
+    )
+    parser.add_argument(
+        "--max-session-age-sec",
+        type=int,
+        default=180,
+        help="Maximum age of active LEG1 session before forced unwind/close.",
+    )
     return parser.parse_args(argv)
 
 
@@ -38,11 +50,14 @@ def main(argv: list[str] | None = None) -> int:
         seed=int(args.seed),
         checkpoint_store=checkpoint_store,
         use_checkpoint=not bool(args.no_checkpoint),
+        max_log_buffer=int(args.max_log_buffer),
+        max_session_age_sec=int(args.max_session_age_sec),
     )
     print(
         f"[paper-live] starting config={args.config} raw_dir={args.raw_dir} "
         f"interval_sec={float(args.interval_sec)} runtime_sec={int(args.runtime_sec)} "
-        f"checkpoint={'disabled' if args.no_checkpoint else args.checkpoint_file}"
+        f"checkpoint={'disabled' if args.no_checkpoint else args.checkpoint_file} "
+        f"max_log_buffer={int(args.max_log_buffer)} max_session_age_sec={int(args.max_session_age_sec)}"
     )
     snapshot = engine.run(runtime_sec=int(args.runtime_sec))
     print(f"[paper-live] final_status={snapshot.get('engine_status')}")
@@ -55,4 +70,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
