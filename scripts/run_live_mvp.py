@@ -135,6 +135,7 @@ class LiveMVPConfig:
     api_market_slugs: tuple[str, ...] = ()
     api_market_urls: tuple[str, ...] = ()
     api_parallel_workers: int = 2
+    api_max_markets_per_cycle: int = 4
     api_top_interval_ms: int = 100
     api_book_interval_ms: int = 250
     api_trades_interval_ms: int = 400
@@ -217,6 +218,8 @@ class LiveMVPConfig:
             raise ValueError("api_market_urls must be a tuple")
         if int(self.api_parallel_workers) < 1:
             raise ValueError("api_parallel_workers must be >= 1")
+        if int(self.api_max_markets_per_cycle) < 1:
+            raise ValueError("api_max_markets_per_cycle must be >= 1")
         if int(self.api_top_interval_ms) < 10:
             raise ValueError("api_top_interval_ms must be >= 10")
         if int(self.api_book_interval_ms) < int(self.api_top_interval_ms):
@@ -288,6 +291,7 @@ class LiveMVPConfig:
             api_market_slugs=_tuple_str_list(payload.get("api_market_slugs", ())),
             api_market_urls=_tuple_str_list(payload.get("api_market_urls", ())),
             api_parallel_workers=int(payload.get("api_parallel_workers", 2)),
+            api_max_markets_per_cycle=int(payload.get("api_max_markets_per_cycle", 4)),
             api_top_interval_ms=int(payload.get("api_top_interval_ms", 100)),
             api_book_interval_ms=int(payload.get("api_book_interval_ms", 250)),
             api_trades_interval_ms=int(payload.get("api_trades_interval_ms", 400)),
@@ -943,6 +947,7 @@ class LiveMVPRunner:
         self._last_api_book_pair_hash_by_market: dict[str, str] = {}
         self._api_market_cache_by_slug: dict[str, tuple[str, str, str, str]] = {}
         self._api_market_schedule_ms: dict[str, dict[str, int]] = {}
+        self._api_market_scan_cursor: int = 0
         self._last_snapshot_hash_by_market: dict[str, str] = {}
         self._api_endpoint_backoff_ms: dict[str, int] = {"top": 0, "book": 0, "trades": 0}
         self._api_endpoint_error_streak: dict[str, int] = {"top": 0, "book": 0, "trades": 0}
@@ -1618,6 +1623,89 @@ class LiveMVPRunner:
         current_next = int(schedule.get(key, now_ms))
         schedule[key] = int(max(now_ms + 1, current_next + interval))
 
+    def _seconds_to_close_now(self, *, market_key: str, now_utc: datetime) -> int:
+        if "_" not in str(market_key):
+            return 86_400
+        close_raw = str(market_key).split("_", 1)[1]
+        close_dt = _parse_utc(close_raw)
+        if close_dt is None:
+            return 86_400
+        return max(0, int((close_dt - now_utc).total_seconds()))
+
+    def _select_markets_for_cycle(
+        self,
+        *,
+        resolved_markets: list[tuple[str, str, str, str]],
+        now_utc: datetime,
+        now_ms: int,
+    ) -> list[tuple[str, str, str, str, bool, bool, bool]]:
+        due_rows: list[dict[str, Any]] = []
+        for market_key, token_up, token_down, condition_id in resolved_markets:
+            due_top = self._is_endpoint_due(market_key=market_key, endpoint="top", now_ms=now_ms)
+            due_book = self._is_endpoint_due(market_key=market_key, endpoint="book", now_ms=now_ms)
+            due_trades = self._is_endpoint_due(market_key=market_key, endpoint="trades", now_ms=now_ms)
+            if not (due_top or due_book or due_trades):
+                continue
+            sec_to_close = self._seconds_to_close_now(market_key=market_key, now_utc=now_utc)
+            due_rows.append(
+                {
+                    "market_key": market_key,
+                    "token_up": token_up,
+                    "token_down": token_down,
+                    "condition_id": condition_id,
+                    "due_top": due_top,
+                    "due_book": due_book,
+                    "due_trades": due_trades,
+                    "pending": market_key in self.pending_by_market,
+                    "seconds_to_close": sec_to_close,
+                    "hot": sec_to_close <= (int(self.cfg.entry_cutoff_sec) + 120),
+                }
+            )
+        if not due_rows:
+            return []
+
+        max_markets = max(1, int(self.cfg.api_max_markets_per_cycle))
+        pending_rows = [row for row in due_rows if bool(row["pending"])]
+        selected: list[dict[str, Any]] = list(pending_rows)
+
+        remaining_rows = [row for row in due_rows if not bool(row["pending"])]
+        hot_rows = sorted(
+            [row for row in remaining_rows if bool(row["hot"])],
+            key=lambda row: int(row["seconds_to_close"]),
+        )
+        cold_rows = sorted(
+            [row for row in remaining_rows if not bool(row["hot"])],
+            key=lambda row: str(row["market_key"]),
+        )
+        rot_pool = hot_rows + cold_rows
+        if rot_pool:
+            cursor = int(self._api_market_scan_cursor) % len(rot_pool)
+            rotated_pool = rot_pool[cursor:] + rot_pool[:cursor]
+        else:
+            cursor = 0
+            rotated_pool = []
+
+        remaining_slots = max(0, int(max_markets) - len(selected))
+        if remaining_slots > 0 and rotated_pool:
+            selected.extend(rotated_pool[:remaining_slots])
+        if rot_pool:
+            self._api_market_scan_cursor = (cursor + max(1, remaining_slots)) % len(rot_pool)
+
+        out: list[tuple[str, str, str, str, bool, bool, bool]] = []
+        for row in selected:
+            out.append(
+                (
+                    str(row["market_key"]),
+                    str(row["token_up"]),
+                    str(row["token_down"]),
+                    str(row["condition_id"]),
+                    bool(row["due_top"]),
+                    bool(row["due_book"]),
+                    bool(row["due_trades"]),
+                )
+            )
+        return out
+
     @staticmethod
     def _is_retryable_error_message(message: str) -> bool:
         txt = str(message or "").strip().lower()
@@ -2284,16 +2372,20 @@ class LiveMVPRunner:
             if not resolved_markets:
                 self._warn_api_throttled("market_key_missing")
                 return []
+            selected_markets = self._select_markets_for_cycle(
+                resolved_markets=resolved_markets,
+                now_utc=now_utc,
+                now_ms=now_ms,
+            )
+            if not selected_markets:
+                return []
 
             snapshots: list[dict[str, Any]] = []
             rest_fallback_candidates: dict[str, dict[str, Any]] = {}
             top_probe_candidates: dict[str, dict[str, Any]] = {}
             trades_due: list[tuple[str, str]] = []
 
-            for market_key, token_up, token_down, condition_id in resolved_markets:
-                due_top = self._is_endpoint_due(market_key=market_key, endpoint="top", now_ms=now_ms)
-                due_book = self._is_endpoint_due(market_key=market_key, endpoint="book", now_ms=now_ms)
-                due_trades = self._is_endpoint_due(market_key=market_key, endpoint="trades", now_ms=now_ms)
+            for market_key, token_up, token_down, condition_id, due_top, due_book, due_trades in selected_markets:
                 if due_trades:
                     trades_due.append((market_key, condition_id))
                 if not (due_top or due_book):
@@ -4348,6 +4440,7 @@ class LiveMVPRunner:
                 f"[live-mvp] api_depth={int(self.cfg.api_book_depth)} "
                 f"api_markets_count={int(self.cfg.api_markets_count)} "
                 f"api_manual_markets={manual_count} "
+                f"api_max_markets_per_cycle={int(self.cfg.api_max_markets_per_cycle)} "
                 f"api_top_interval_ms={int(self.cfg.api_top_interval_ms)} "
                 f"api_book_interval_ms={int(self.cfg.api_book_interval_ms)} "
                 f"api_trades_interval_ms={int(self.cfg.api_trades_interval_ms)} "

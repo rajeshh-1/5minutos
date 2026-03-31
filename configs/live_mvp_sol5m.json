@@ -27,6 +27,7 @@
   "max_consecutive_failures": 2,
   "api_book_depth": 20,
   "api_markets_count": 1,
+  "api_max_markets_per_cycle": 4,
   "api_market_urls": [
     "https://polymarket.com/pt/event/btc-updown-5m-1774715400",
     "https://polymarket.com/pt/event/eth-updown-5m-1774715400",

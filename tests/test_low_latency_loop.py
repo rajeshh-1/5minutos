@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 from scripts.run_live_mvp import LiveMVPConfig, LiveMVPRunner
@@ -17,6 +18,7 @@ def _build_runner(tmp_path: Path) -> LiveMVPRunner:
             "api_trades_interval_ms": 400,
             "api_request_timeout_ms": 350,
             "api_parallel_workers": 2,
+            "api_max_markets_per_cycle": 2,
             "api_skip_unchanged_book": True,
             "api_backoff_on_error": True,
             "api_max_rps_guard": 25.0,
@@ -105,3 +107,30 @@ def test_trade_dedupe_uses_trade_id_and_timestamp(tmp_path: Path) -> None:
 
     assert inserted_first == 2
     assert inserted_second == 0
+
+
+def test_select_markets_prioritizes_pending_and_respects_cap(tmp_path: Path) -> None:
+    runner = _build_runner(tmp_path)
+    now_utc = datetime(2026, 3, 30, 12, 7, 0, tzinfo=timezone.utc)
+    now_ms = int(now_utc.timestamp() * 1000)
+    resolved = [
+        ("BTC5M_2026-03-30T12:10:00Z", "up1", "down1", "c1"),
+        ("ETH5M_2026-03-30T12:10:00Z", "up2", "down2", "c2"),
+        ("SOL5M_2026-03-30T12:10:00Z", "up3", "down3", "c3"),
+    ]
+    for market_key, *_ in resolved:
+        runner._api_market_schedule_ms[market_key] = {
+            "next_top_ms": now_ms,
+            "next_book_ms": now_ms,
+            "next_trades_ms": now_ms,
+        }
+    runner.pending_by_market["SOL5M_2026-03-30T12:10:00Z"] = None  # type: ignore[assignment]
+
+    selected = runner._select_markets_for_cycle(
+        resolved_markets=resolved,
+        now_utc=now_utc,
+        now_ms=now_ms,
+    )
+
+    assert len(selected) == 2
+    assert any(row[0] == "SOL5M_2026-03-30T12:10:00Z" for row in selected)

@@ -11,6 +11,7 @@ No `configs/live_mvp_sol5m.json`:
 - `api_trades_interval_ms`: cadence de trades (default `400`)
 - `api_request_timeout_ms`: timeout por request (default `350`)
 - `api_parallel_workers`: workers paralelos (default `4`)
+- `api_max_markets_per_cycle`: limita fanout por ciclo (default `4`)
 - `api_skip_unchanged_book`: ignora snapshot igual (default `true`)
 - `api_backoff_on_error`: backoff adaptativo por endpoint (default `true`)
 - `api_max_rps_guard`: guard rail de RPS total (default `25.0`)
@@ -21,6 +22,7 @@ No `configs/live_mvp_sol5m.json`:
 - `WS` e usado como caminho rapido.
 - `REST` entra como fallback e para preaquecer cache WS.
 - Midpoint/top e book rodam em cadencias separadas.
+- Selecionador de ciclo prioriza mercado pendente e mercado "quente" (mais perto do fechamento).
 - Trades sao consultados separadamente com dedupe por `trade_id + timestamp`.
 
 ## Controle de Erro e Rate Limit
