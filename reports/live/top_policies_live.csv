@@ -1,2 +1,0 @@
-as_of_utc,profile_id,hedge_success_rate,pnl_total,max_drawdown_pct,p99_loss,top_reason_code
-2026-03-25T23:53:23Z,paper_default,0.0,-0.0470481291,4.70481291,0.0099009901,unwind_on_timeout
