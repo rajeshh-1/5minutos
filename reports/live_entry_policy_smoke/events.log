@@ -1,6 +1,0 @@
-2026-03-26T17:47:21Z cycle_id=1 rows={'prices': 10629, 'trades': 3333, 'orderbook': 12297, 'total': 26259} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154
-2026-03-26T17:47:21Z cycle_id=2 rows={'prices': 0, 'trades': 0, 'orderbook': 0, 'total': 0} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154
-2026-03-26T17:47:23Z cycle_id=3 rows={'prices': 0, 'trades': 0, 'orderbook': 0, 'total': 0} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154
-2026-03-26T17:47:25Z cycle_id=4 rows={'prices': 0, 'trades': 0, 'orderbook': 0, 'total': 0} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154
-2026-03-26T17:47:27Z cycle_id=5 rows={'prices': 0, 'trades': 0, 'orderbook': 0, 'total': 0} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154
-2026-03-26T17:47:29Z cycle_id=6 rows={'prices': 0, 'trades': 0, 'orderbook': 0, 'total': 0} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154

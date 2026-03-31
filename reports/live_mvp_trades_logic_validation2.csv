@@ -1,9 +1,0 @@
-ts_utc,market_key,action,status,reason_code,leg1_side,yes_ask,no_ask,sum_ask,seconds_to_close,leg1_price,leg2_price,unwind_price,order_id_leg1,order_id_leg2,fill_status_leg1,fill_status_leg2,hedge_latency_ms,unwind_triggered,pnl_delta,pnl_total,note
-2026-03-26T21:00:00Z,SOL5M_2026-03-26T21:05:00Z,skip_entry,blocked,blocked_unwind_risk,yes,0.48,0.6,1.08,300,,,,,,,,,,0.0,0.0,unwind_loss_bps=208.33 > max_unwind_loss_bps=120.00
-2026-03-26T21:00:01Z,SOL5M_2026-03-26T21:05:00Z,skip_entry,blocked,blocked_unwind_risk,yes,0.48,0.49,0.97,299,,,,,,,,,,0.0,0.0,unwind_loss_bps=208.33 > max_unwind_loss_bps=120.00
-2026-03-26T21:00:02Z,SOL5M_2026-03-26T21:10:00Z,skip_entry,blocked,blocked_unwind_risk,yes,0.48,0.7,1.18,598,,,,,,,,,,0.0,0.0,unwind_loss_bps=208.33 > max_unwind_loss_bps=120.00
-2026-03-26T21:00:05Z,SOL5M_2026-03-26T21:10:00Z,skip_entry,blocked,blocked_unwind_risk,yes,0.48,0.7,1.18,595,,,,,,,,,,0.0,0.0,unwind_loss_bps=208.33 > max_unwind_loss_bps=120.00
-2026-03-26T21:00:00Z,SOL5M_2026-03-26T21:05:00Z,enter_leg1,open,entered_leg1_yes,yes,0.48,0.6,1.08,300,0.48,0.49,,,,simulated_open,,,False,0.0,0.0,mvp_entry target_b<=0.490000
-2026-03-26T21:00:01Z,SOL5M_2026-03-26T21:05:00Z,hedge_leg2,closed,hedge_filled,yes,0.48,0.49,0.97,299,0.48,0.49,,,,simulated_open,simulated_fill_target,0,False,0.03,0.03,mvp_hedge_success target_b<=0.490000
-2026-03-26T21:00:02Z,SOL5M_2026-03-26T21:10:00Z,enter_leg1,open,entered_leg1_yes,yes,0.48,0.7,1.18,598,0.48,0.49,,,,simulated_open,,,False,0.0,0.03,mvp_entry target_b<=0.490000
-2026-03-26T21:00:05Z,SOL5M_2026-03-26T21:10:00Z,unwind_leg1,closed,leg2_timeout_unwind_over_limit,yes,0.48,0.7,1.18,595,0.48,,0.47,,,simulated_open,,0,True,-0.01,0.02,mvp_timeout_unwind target_not_reached leg2_ask=0.700000 target_b<=0.490000 loss_bps=208.33 > max_unwind_loss_bps=120.00
