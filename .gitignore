@@ -7,3 +7,9 @@ htmlcov/
 .DS_Store
 logs/*.log
 *env
+
+# Runtime artifacts (keep repo lean)
+data/raw/**
+reports/live/**
+reports/tuning/_runs/**
+archives/runtime/**

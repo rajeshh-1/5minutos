@@ -1,0 +1,8 @@
+{
+  "keep_days_raw": 3,
+  "keep_days_reports": 7,
+  "keep_days_logs": 7,
+  "max_keep_files_per_group": 50,
+  "dry_run_default": true,
+  "archive_dir": "archives/runtime"
+}
