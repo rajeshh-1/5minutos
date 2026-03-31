@@ -27,7 +27,8 @@
   "max_consecutive_failures": 2,
   "api_book_depth": 20,
   "api_markets_count": 1,
-  "api_max_markets_per_cycle": 4,
+  "api_max_markets_per_cycle": 2,
+  "api_max_data_freshness_ms": 1500,
   "api_market_urls": [
     "https://polymarket.com/pt/event/btc-updown-5m-1774715400",
     "https://polymarket.com/pt/event/eth-updown-5m-1774715400",
@@ -45,6 +46,8 @@
   "api_book_interval_ms": 250,
   "api_trades_interval_ms": 400,
   "api_request_timeout_ms": 350,
+  "api_request_retries": 0,
+  "api_request_backoff_ms": 0,
   "api_use_effective_quotes": false,
   "api_skip_unchanged_book": true,
   "api_backoff_on_error": true,

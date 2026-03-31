@@ -136,10 +136,13 @@ class LiveMVPConfig:
     api_market_urls: tuple[str, ...] = ()
     api_parallel_workers: int = 2
     api_max_markets_per_cycle: int = 4
+    api_max_data_freshness_ms: int = 1500
     api_top_interval_ms: int = 100
     api_book_interval_ms: int = 250
     api_trades_interval_ms: int = 400
     api_request_timeout_ms: int = 350
+    api_request_retries: int = 0
+    api_request_backoff_ms: int = 0
     api_use_effective_quotes: bool = True
     api_skip_unchanged_book: bool = True
     api_backoff_on_error: bool = True
@@ -220,6 +223,8 @@ class LiveMVPConfig:
             raise ValueError("api_parallel_workers must be >= 1")
         if int(self.api_max_markets_per_cycle) < 1:
             raise ValueError("api_max_markets_per_cycle must be >= 1")
+        if int(self.api_max_data_freshness_ms) < 100:
+            raise ValueError("api_max_data_freshness_ms must be >= 100")
         if int(self.api_top_interval_ms) < 10:
             raise ValueError("api_top_interval_ms must be >= 10")
         if int(self.api_book_interval_ms) < int(self.api_top_interval_ms):
@@ -228,6 +233,10 @@ class LiveMVPConfig:
             raise ValueError("api_trades_interval_ms must be >= api_top_interval_ms")
         if int(self.api_request_timeout_ms) < 50:
             raise ValueError("api_request_timeout_ms must be >= 50")
+        if int(self.api_request_retries) < 0:
+            raise ValueError("api_request_retries must be >= 0")
+        if int(self.api_request_backoff_ms) < 0:
+            raise ValueError("api_request_backoff_ms must be >= 0")
         if float(self.api_max_rps_guard) < 1.0:
             raise ValueError("api_max_rps_guard must be >= 1")
         if str(self.api_ws_url).strip() and not str(self.api_ws_url).strip().lower().startswith(("ws://", "wss://")):
@@ -292,10 +301,13 @@ class LiveMVPConfig:
             api_market_urls=_tuple_str_list(payload.get("api_market_urls", ())),
             api_parallel_workers=int(payload.get("api_parallel_workers", 2)),
             api_max_markets_per_cycle=int(payload.get("api_max_markets_per_cycle", 4)),
+            api_max_data_freshness_ms=int(payload.get("api_max_data_freshness_ms", 1500)),
             api_top_interval_ms=int(payload.get("api_top_interval_ms", 100)),
             api_book_interval_ms=int(payload.get("api_book_interval_ms", 250)),
             api_trades_interval_ms=int(payload.get("api_trades_interval_ms", 400)),
             api_request_timeout_ms=int(payload.get("api_request_timeout_ms", 350)),
+            api_request_retries=int(payload.get("api_request_retries", 0)),
+            api_request_backoff_ms=int(payload.get("api_request_backoff_ms", 0)),
             api_use_effective_quotes=bool(payload.get("api_use_effective_quotes", True)),
             api_skip_unchanged_book=bool(payload.get("api_skip_unchanged_book", True)),
             api_backoff_on_error=bool(payload.get("api_backoff_on_error", True)),
@@ -935,6 +947,7 @@ class LiveMVPRunner:
             "trades": deque(),
             "ws": deque(),
         }
+        self._suppress_api_metrics = False
         self._api_skip_unchanged_events: deque[int] = deque()
         self._api_global_requests_1s: deque[int] = deque()
         self.market_source = str(market_source or "file").strip().lower()
@@ -961,6 +974,7 @@ class LiveMVPRunner:
         self._report_last_flush_at = time.time()
         self.api_collector: MarketDataCollector | None = None
         self._api_pool: concurrent.futures.ThreadPoolExecutor | None = None
+        self._api_trades_future: concurrent.futures.Future[str] | None = None
         self._api_ws_feed: PolymarketMarketWsShardPool | None = None
         if self.market_source == "api":
             self.api_collector = self._build_api_collector(config_path=self.collector_config_path)
@@ -1513,6 +1527,8 @@ class LiveMVPRunner:
     def _build_api_collector(self, *, config_path: str) -> MarketDataCollector:
         collector_cfg = load_collector_config(config_path)
         cfg_timeout_sec = max(0.05, float(self.cfg.api_request_timeout_ms) / 1000.0)
+        cfg_backoff_sec = max(0.0, float(self.cfg.api_request_backoff_ms) / 1000.0)
+        cfg_retries = max(0, int(self.cfg.api_request_retries))
         if self.api_timeout_sec is not None or self.api_retries is not None or self.api_backoff_sec is not None:
             request_cfg = replace(
                 collector_cfg.request,
@@ -1533,6 +1549,8 @@ class LiveMVPRunner:
                 request=replace(
                     collector_cfg.request,
                     timeout_sec=cfg_timeout_sec,
+                    retries=cfg_retries,
+                    backoff_sec=cfg_backoff_sec,
                 ),
             )
         return MarketDataCollector(
@@ -1560,6 +1578,8 @@ class LiveMVPRunner:
             queue.popleft()
 
     def _record_api_event(self, *, endpoint: str, latency_ms: float, ok: bool) -> None:
+        if bool(self._suppress_api_metrics):
+            return
         endpoint_key = str(endpoint or "").strip().lower() or "book"
         now_ms = int(time.time() * 1000)
         queue = self._api_events_by_endpoint.setdefault(endpoint_key, deque())
@@ -2126,20 +2146,21 @@ class LiveMVPRunner:
             future = self._api_pool.submit(self._timed_fetch_book, token_id)
             futures[future] = token_id
 
-        for future in list(futures.keys()):
-            remaining = deadline - time.perf_counter()
-            if remaining <= 0:
-                break
-            token_id = futures.get(future, "")
-            try:
-                book, latency_ms = future.result(timeout=max(0.001, remaining))
-                token_books[token_id] = book
-                self._record_api_event(endpoint="book", latency_ms=float(latency_ms), ok=True)
-                self._mark_endpoint_outcome(endpoint="book", ok=True)
-            except Exception as exc:
-                last_error = str(exc)
-                self._record_api_event(endpoint="book", latency_ms=float(timeout_sec * 1000.0), ok=False)
-                self._mark_endpoint_outcome(endpoint="book", ok=False, error_message=last_error)
+        try:
+            remaining = max(0.001, deadline - time.perf_counter())
+            for future in concurrent.futures.as_completed(list(futures.keys()), timeout=remaining):
+                token_id = futures.get(future, "")
+                try:
+                    book, latency_ms = future.result()
+                    token_books[token_id] = book
+                    self._record_api_event(endpoint="book", latency_ms=float(latency_ms), ok=True)
+                    self._mark_endpoint_outcome(endpoint="book", ok=True)
+                except Exception as exc:
+                    last_error = str(exc)
+                    self._record_api_event(endpoint="book", latency_ms=float(timeout_sec * 1000.0), ok=False)
+                    self._mark_endpoint_outcome(endpoint="book", ok=False, error_message=last_error)
+        except concurrent.futures.TimeoutError:
+            last_error = "books_bulk_timeout"
 
         for future in list(futures.keys()):
             if not future.done():
@@ -2188,21 +2209,22 @@ class LiveMVPRunner:
             future = self._api_pool.submit(self._timed_fetch_midpoint, token_id)
             futures[future] = token_id
 
-        for future in list(futures.keys()):
-            remaining = deadline - time.perf_counter()
-            if remaining <= 0:
-                break
-            token_id = futures.get(future, "")
-            try:
-                midpoint, latency_ms = future.result(timeout=max(0.001, remaining))
-                out[token_id] = midpoint
-                self._record_api_event(endpoint="top", latency_ms=float(latency_ms), ok=True)
-                self._mark_endpoint_outcome(endpoint="top", ok=True)
-            except Exception as exc:
-                last_error = str(exc)
-                out[token_id] = None
-                self._record_api_event(endpoint="top", latency_ms=float(timeout_sec * 1000.0), ok=False)
-                self._mark_endpoint_outcome(endpoint="top", ok=False, error_message=last_error)
+        try:
+            remaining = max(0.001, deadline - time.perf_counter())
+            for future in concurrent.futures.as_completed(list(futures.keys()), timeout=remaining):
+                token_id = futures.get(future, "")
+                try:
+                    midpoint, latency_ms = future.result()
+                    out[token_id] = midpoint
+                    self._record_api_event(endpoint="top", latency_ms=float(latency_ms), ok=True)
+                    self._mark_endpoint_outcome(endpoint="top", ok=True)
+                except Exception as exc:
+                    last_error = str(exc)
+                    out[token_id] = None
+                    self._record_api_event(endpoint="top", latency_ms=float(timeout_sec * 1000.0), ok=False)
+                    self._mark_endpoint_outcome(endpoint="top", ok=False, error_message=last_error)
+        except concurrent.futures.TimeoutError:
+            last_error = "midpoints_bulk_timeout"
         for future in list(futures.keys()):
             if not future.done():
                 future.cancel()
@@ -2212,6 +2234,7 @@ class LiveMVPRunner:
         self,
         *,
         markets: list[tuple[str, str]],
+        use_pool: bool = True,
     ) -> str:
         assert self.api_collector is not None
         todo = [(str(market_key), str(condition_id)) for market_key, condition_id in markets if str(condition_id).strip()]
@@ -2220,7 +2243,7 @@ class LiveMVPRunner:
         timeout_sec = max(0.05, float(self.cfg.api_request_timeout_ms) / 1000.0)
         last_error = ""
 
-        if self._api_pool is None:
+        if (self._api_pool is None) or (not bool(use_pool)):
             for market_key, condition_id in todo:
                 self._respect_rps_guard()
                 started = time.perf_counter()
@@ -2243,25 +2266,59 @@ class LiveMVPRunner:
             self._respect_rps_guard()
             future = self._api_pool.submit(self._timed_fetch_trades, condition_id)
             futures[future] = market_key
-        for future in list(futures.keys()):
-            remaining = deadline - time.perf_counter()
-            if remaining <= 0:
-                break
-            market_key = futures.get(future, "")
-            try:
-                rows, latency_ms = future.result(timeout=max(0.001, remaining))
-                rows_list = rows if isinstance(rows, list) else []
-                self._dedupe_trades_rows(market_key=market_key, rows=[row for row in rows_list if isinstance(row, dict)])
-                self._record_api_event(endpoint="trades", latency_ms=float(latency_ms), ok=True)
-                self._mark_endpoint_outcome(endpoint="trades", ok=True)
-            except Exception as exc:
-                last_error = str(exc)
-                self._record_api_event(endpoint="trades", latency_ms=float(timeout_sec * 1000.0), ok=False)
-                self._mark_endpoint_outcome(endpoint="trades", ok=False, error_message=last_error)
+        try:
+            remaining = max(0.001, deadline - time.perf_counter())
+            for future in concurrent.futures.as_completed(list(futures.keys()), timeout=remaining):
+                market_key = futures.get(future, "")
+                try:
+                    rows, latency_ms = future.result()
+                    rows_list = rows if isinstance(rows, list) else []
+                    self._dedupe_trades_rows(market_key=market_key, rows=[row for row in rows_list if isinstance(row, dict)])
+                    self._record_api_event(endpoint="trades", latency_ms=float(latency_ms), ok=True)
+                    self._mark_endpoint_outcome(endpoint="trades", ok=True)
+                except Exception as exc:
+                    last_error = str(exc)
+                    self._record_api_event(endpoint="trades", latency_ms=float(timeout_sec * 1000.0), ok=False)
+                    self._mark_endpoint_outcome(endpoint="trades", ok=False, error_message=last_error)
+        except concurrent.futures.TimeoutError:
+            last_error = "trades_bulk_timeout"
         for future in list(futures.keys()):
             if not future.done():
                 future.cancel()
         return last_error
+
+    def _poll_trades_future(self) -> None:
+        future = self._api_trades_future
+        if future is None:
+            return
+        if not future.done():
+            return
+        self._api_trades_future = None
+        try:
+            trades_error = str(future.result() or "").strip()
+        except Exception as exc:  # noqa: BLE001
+            self._warn_api_throttled(f"trades_fetch_error:{exc}")
+            return
+        if trades_error:
+            self._warn_api_throttled(f"trades_fetch_error:{trades_error}")
+
+    def _start_trades_fetch(self, *, trades_due: list[tuple[str, str]]) -> None:
+        if not trades_due:
+            return
+        if self._api_pool is None:
+            trades_error = self._fetch_trades_for_markets(markets=trades_due, use_pool=False)
+            if trades_error:
+                self._warn_api_throttled(f"trades_fetch_error:{trades_error}")
+            return
+        self._poll_trades_future()
+        if self._api_trades_future is not None and not self._api_trades_future.done():
+            return
+        due_copy = [(str(market_key), str(condition_id)) for market_key, condition_id in trades_due]
+        self._api_trades_future = self._api_pool.submit(
+            self._fetch_trades_for_markets,
+            markets=due_copy,
+            use_pool=False,
+        )
 
     def _fetch_books_ws(
         self,
@@ -2393,6 +2450,7 @@ class LiveMVPRunner:
 
                 last_hash = self._last_api_book_pair_hash_by_market.get(market_key, "")
                 need_rest = True
+                market_has_pending = market_key in self.pending_by_market
 
                 if self._api_ws_feed is not None:
                     started_ws = time.perf_counter()
@@ -2475,6 +2533,31 @@ class LiveMVPRunner:
                                 need_rest = False
                                 continue
                         else:
+                            if not market_has_pending:
+                                snapshot_stale = self._snapshot_from_books(
+                                    up_book=up_book_ws,
+                                    down_book=down_book_ws,
+                                    market_key=market_key,
+                                    token_up=token_up,
+                                    token_down=token_down,
+                                    source="ws_stale",
+                                )
+                                if snapshot_stale is not None:
+                                    snapshots.append(snapshot_stale)
+                                    if pair_hash_ws:
+                                        self._last_api_book_pair_hash_by_market[market_key] = pair_hash_ws
+                                self._schedule_market_endpoint(
+                                    market_key=market_key,
+                                    endpoint="top",
+                                    now_ms=now_ms,
+                                )
+                                self._schedule_market_endpoint(
+                                    market_key=market_key,
+                                    endpoint="book",
+                                    now_ms=now_ms,
+                                )
+                                need_rest = False
+                                continue
                             self._warn_api_throttled(
                                 f"ws_stale_fallback age_sec={ws_age_sec:.3f} stale_sec={float(self.cfg.api_ws_stale_sec):.3f}"
                             )
@@ -2633,10 +2716,9 @@ class LiveMVPRunner:
                     if pair_hash:
                         self._last_api_book_pair_hash_by_market[market_key] = pair_hash
 
+            self._poll_trades_future()
             if trades_due:
-                trades_error = self._fetch_trades_for_markets(markets=trades_due)
-                if trades_error:
-                    self._warn_api_throttled(f"trades_fetch_error:{trades_error}")
+                self._start_trades_fetch(trades_due=trades_due)
                 for market_key, _condition_id in trades_due:
                     self._schedule_market_endpoint(
                         market_key=market_key,
@@ -2648,6 +2730,60 @@ class LiveMVPRunner:
         except Exception as exc:  # noqa: BLE001
             self._warn_api_throttled(f"snapshot_error:{exc}")
             return []
+
+    def _warmup_api_state(self) -> None:
+        if self.market_source != "api" or self.api_collector is None:
+            return
+        started = time.perf_counter()
+        seeded_books = 0
+        try:
+            self._suppress_api_metrics = True
+            now_utc = datetime.now(timezone.utc)
+            now_ms = int(now_utc.timestamp() * 1000)
+            resolved_markets = self._resolve_api_markets_for_now(now_utc=now_utc)
+            if not resolved_markets:
+                return
+
+            for market_key, _token_up, _token_down, _condition_id in resolved_markets:
+                self._market_schedule(market_key=market_key, now_ms=now_ms)
+
+            if self._api_ws_feed is not None and bool(self.cfg.api_ws_fallback_rest):
+                warmup_count = max(1, min(len(resolved_markets), int(self.cfg.api_max_markets_per_cycle)))
+                selected = resolved_markets[:warmup_count]
+                pair_to_market: dict[tuple[str, str], str] = {}
+                pairs: list[tuple[str, str]] = []
+                for market_key, token_up, token_down, _condition_id in selected:
+                    key = (str(token_up), str(token_down))
+                    pair_to_market[key] = str(market_key)
+                    pairs.append(key)
+                pair_books, err = self._fetch_books_rest_bulk(pairs=pairs)
+                if err:
+                    self._warn_api_throttled(f"api_warmup_books_error:{err}")
+                for pair_key, books in pair_books.items():
+                    token_up, token_down = pair_key
+                    up_book, down_book = books
+                    self._api_ws_feed.seed_pair_from_rest(
+                        token_up=token_up,
+                        token_down=token_down,
+                        up_book=up_book,
+                        down_book=down_book,
+                    )
+                    market_key = pair_to_market.get((str(token_up), str(token_down)), "")
+                    if market_key:
+                        pair_hash = self._book_pair_hash(up_book=up_book, down_book=down_book)
+                        if pair_hash:
+                            self._last_api_book_pair_hash_by_market[str(market_key)] = str(pair_hash)
+                    seeded_books += 1
+
+            elapsed_ms = (time.perf_counter() - started) * 1000.0
+            print(
+                f"[live-mvp] api_warmup resolved_markets={len(resolved_markets)} "
+                f"seeded_books={seeded_books} elapsed_ms={elapsed_ms:.1f}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._warn_api_throttled(f"api_warmup_error:{exc}")
+        finally:
+            self._suppress_api_metrics = False
 
     def _bootstrap_offsets_from_end(self) -> None:
         if self._offsets_bootstrapped or not bool(self.cfg.start_from_end):
@@ -4122,6 +4258,26 @@ class LiveMVPRunner:
             self._attempt_hedge_or_unwind(snapshot=snapshot, pending=existing)
             return
 
+        data_age_ms = _safe_float(snapshot.get("data_age_ms"), default=None)
+        if data_age_ms is not None and float(data_age_ms) > float(self.cfg.api_max_data_freshness_ms):
+            self._append_action(
+                ts_utc=ts_utc,
+                market_key=market_key,
+                action="skip_entry",
+                status="blocked",
+                reason_code="blocked_stale_snapshot",
+                yes_ask=yes_ask,
+                no_ask=no_ask,
+                sum_ask=sum_ask,
+                seconds_to_close=seconds_to_close,
+                note=(
+                    f"data_age_ms={float(data_age_ms):.1f} > "
+                    f"api_max_data_freshness_ms={int(self.cfg.api_max_data_freshness_ms)} "
+                    f"feed_source={self._active_feed_source or '-'}"
+                ),
+            )
+            return
+
         if self.kill_switch_triggered:
             self._append_action(
                 ts_utc=ts_utc,
@@ -4441,10 +4597,13 @@ class LiveMVPRunner:
                 f"api_markets_count={int(self.cfg.api_markets_count)} "
                 f"api_manual_markets={manual_count} "
                 f"api_max_markets_per_cycle={int(self.cfg.api_max_markets_per_cycle)} "
+                f"api_max_data_freshness_ms={int(self.cfg.api_max_data_freshness_ms)} "
                 f"api_top_interval_ms={int(self.cfg.api_top_interval_ms)} "
                 f"api_book_interval_ms={int(self.cfg.api_book_interval_ms)} "
                 f"api_trades_interval_ms={int(self.cfg.api_trades_interval_ms)} "
                 f"api_request_timeout_ms={int(self.cfg.api_request_timeout_ms)} "
+                f"api_request_retries={int(self.cfg.api_request_retries)} "
+                f"api_request_backoff_ms={int(self.cfg.api_request_backoff_ms)} "
                 f"api_effective_quotes={bool(self.cfg.api_use_effective_quotes)} "
                 f"api_skip_unchanged_book={bool(self.cfg.api_skip_unchanged_book)} "
                 f"api_backoff_on_error={bool(self.cfg.api_backoff_on_error)} "
@@ -4459,6 +4618,8 @@ class LiveMVPRunner:
             )
         if self.market_source == "file" and self.cfg.start_from_end:
             print("[live-mvp] start_from_end=true (ignora historico e processa apenas novos ticks)")
+        if self.market_source == "api":
+            self._warmup_api_state()
         started = time.time()
         try:
             while True:
@@ -4517,12 +4678,20 @@ class LiveMVPRunner:
             print("[live-mvp] interrupted by Ctrl+C")
         finally:
             self._flush_report_buffer_if_needed(force=True)
+            if self._api_trades_future is not None and not self._api_trades_future.done():
+                self._api_trades_future.cancel()
+            self._api_trades_future = None
             if self._api_ws_feed is not None:
                 self._api_ws_feed.stop()
                 self._api_ws_feed = None
             if self._api_pool is not None:
                 self._api_pool.shutdown(wait=False, cancel_futures=True)
                 self._api_pool = None
+            if self.api_collector is not None:
+                try:
+                    self.api_collector.close()
+                except Exception:
+                    pass
 
         print(
             f"[live-mvp] finished rows_processed={self.rows_processed} "

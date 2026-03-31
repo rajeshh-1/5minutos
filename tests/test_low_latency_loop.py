@@ -17,8 +17,11 @@ def _build_runner(tmp_path: Path) -> LiveMVPRunner:
             "api_book_interval_ms": 250,
             "api_trades_interval_ms": 400,
             "api_request_timeout_ms": 350,
+            "api_request_retries": 0,
+            "api_request_backoff_ms": 0,
             "api_parallel_workers": 2,
             "api_max_markets_per_cycle": 2,
+            "api_max_data_freshness_ms": 1500,
             "api_skip_unchanged_book": True,
             "api_backoff_on_error": True,
             "api_max_rps_guard": 25.0,
@@ -134,3 +137,29 @@ def test_select_markets_prioritizes_pending_and_respects_cap(tmp_path: Path) -> 
 
     assert len(selected) == 2
     assert any(row[0] == "SOL5M_2026-03-30T12:10:00Z" for row in selected)
+
+
+def test_stale_snapshot_blocks_new_entry(tmp_path: Path) -> None:
+    runner = _build_runner(tmp_path)
+    snap = {
+        "market_key": "BTC5M_2026-03-30T12:10:00Z",
+        "ts_utc": "2026-03-30T12:07:00Z",
+        "feed_source": "ws_stale",
+        "yes_ask": 0.48,
+        "no_ask": 0.49,
+        "sum_ask": 0.97,
+        "yes_bid": 0.47,
+        "no_bid": 0.48,
+        "yes_ask_size": 500.0,
+        "no_ask_size": 500.0,
+        "yes_spread": 0.01,
+        "no_spread": 0.01,
+        "seconds_to_close": 120,
+        "data_age_ms": 5000.0,
+    }
+    runner._process_snapshot(snap)
+    runner._flush_report_buffer_if_needed(force=True)
+
+    report = Path(runner.report_file)
+    text = report.read_text(encoding="utf-8")
+    assert "blocked_stale_snapshot" in text

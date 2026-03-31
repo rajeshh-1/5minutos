@@ -10,8 +10,11 @@ No `configs/live_mvp_sol5m.json`:
 - `api_book_interval_ms`: cadence de book completo (default `250`)
 - `api_trades_interval_ms`: cadence de trades (default `400`)
 - `api_request_timeout_ms`: timeout por request (default `350`)
+- `api_request_retries`: retries por request no coletor (default `0` em low-latency)
+- `api_request_backoff_ms`: backoff por retry no coletor (default `0` em low-latency)
 - `api_parallel_workers`: workers paralelos (default `4`)
 - `api_max_markets_per_cycle`: limita fanout por ciclo (default `4`)
+- `api_max_data_freshness_ms`: bloqueia entrada com snapshot velho (default `1500`)
 - `api_skip_unchanged_book`: ignora snapshot igual (default `true`)
 - `api_backoff_on_error`: backoff adaptativo por endpoint (default `true`)
 - `api_max_rps_guard`: guard rail de RPS total (default `25.0`)
@@ -21,9 +24,11 @@ No `configs/live_mvp_sol5m.json`:
 - Decisao e disparada por evento: snapshot novo (hash/sinal alterado).
 - `WS` e usado como caminho rapido.
 - `REST` entra como fallback e para preaquecer cache WS.
+- Startup faz warmup da API (resolve mercados e semeia parte dos books no cache WS) para reduzir pico de latencia no primeiro ciclo.
 - Midpoint/top e book rodam em cadencias separadas.
 - Selecionador de ciclo prioriza mercado pendente e mercado "quente" (mais perto do fechamento).
-- Trades sao consultados separadamente com dedupe por `trade_id + timestamp`.
+- Quando WS estiver stale, bot evita bloquear em REST para mercado sem posicao pendente.
+- Trades sao consultados em background (nao bloqueiam o loop de decisao) com dedupe por `trade_id + timestamp`.
 
 ## Controle de Erro e Rate Limit
 

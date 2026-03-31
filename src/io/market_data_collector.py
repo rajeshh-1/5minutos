@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -9,6 +10,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+try:
+    import requests
+except Exception:  # pragma: no cover - optional dependency
+    requests = None
 
 from src.io.storage_writer import JsonlStorageWriter, iso_utc
 
@@ -207,7 +213,52 @@ class MarketDataCollector:
         self.market = ResolvedMarket()
         self.seen_trade_ids: set[str] = set()
         self.discarded_in_cycle = 0
+        self._thread_local = threading.local()
+        self._sessions_lock = threading.Lock()
+        self._sessions: list[Any] = []
+        self._http_headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json,text/plain,*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Origin": "https://polymarket.com",
+            "Referer": "https://polymarket.com/",
+        }
         self._load_checkpoint()
+
+    def close(self) -> None:
+        with self._sessions_lock:
+            sessions = list(self._sessions)
+            self._sessions.clear()
+        for session in sessions:
+            try:
+                session.close()
+            except Exception:
+                pass
+
+    def _get_thread_session(self) -> Any | None:
+        if requests is None:
+            return None
+        session = getattr(self._thread_local, "session", None)
+        if session is not None:
+            return session
+        session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=32,
+            pool_maxsize=64,
+            max_retries=0,
+            pool_block=False,
+        )
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        session.headers.update(self._http_headers)
+        self._thread_local.session = session
+        with self._sessions_lock:
+            self._sessions.append(session)
+        return session
 
     def _atomic_write_json(self, *, target: Path, payload: dict[str, Any]) -> bool:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -275,20 +326,21 @@ class MarketDataCollector:
         last_error: Exception | None = None
         for attempt in range(self.config.request.retries + 1):
             try:
+                session = self._get_thread_session()
+                if session is not None:
+                    resp = session.get(
+                        url,
+                        params=params or None,
+                        timeout=float(self.config.request.timeout_sec),
+                    )
+                    status_code = int(getattr(resp, "status_code", 0))
+                    if status_code >= 400:
+                        raise RuntimeError(f"status_code={status_code}")
+                    return resp.json()
                 req = urllib.request.Request(
                     full_url,
                     method="GET",
-                    headers={
-                        "User-Agent": (
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                            "AppleWebKit/537.36 (KHTML, like Gecko) "
-                            "Chrome/124.0.0.0 Safari/537.36"
-                        ),
-                        "Accept": "application/json,text/plain,*/*",
-                        "Accept-Language": "en-US,en;q=0.9",
-                        "Origin": "https://polymarket.com",
-                        "Referer": "https://polymarket.com/",
-                    },
+                    headers=dict(self._http_headers),
                 )
                 with urllib.request.urlopen(req, timeout=float(self.config.request.timeout_sec)) as resp:
                     raw = resp.read()
@@ -299,6 +351,43 @@ class MarketDataCollector:
                     backoff = float(self.config.request.backoff_sec) * (2**attempt)
                     time.sleep(backoff)
         raise RuntimeError(f"http_get_failed {full_url}: {last_error}")
+
+    def _http_post_json(self, url: str, payload: Any) -> Any:
+        body_json = json.dumps(payload)
+        body = body_json.encode("utf-8")
+        last_error: Exception | None = None
+        for attempt in range(self.config.request.retries + 1):
+            try:
+                session = self._get_thread_session()
+                if session is not None:
+                    resp = session.post(
+                        url,
+                        data=body_json,
+                        timeout=float(self.config.request.timeout_sec),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    status_code = int(getattr(resp, "status_code", 0))
+                    if status_code >= 400:
+                        raise RuntimeError(f"status_code={status_code}")
+                    return resp.json()
+                req = urllib.request.Request(
+                    url,
+                    data=body,
+                    method="POST",
+                    headers={
+                        **dict(self._http_headers),
+                        "Content-Type": "application/json",
+                    },
+                )
+                with urllib.request.urlopen(req, timeout=float(self.config.request.timeout_sec)) as resp:
+                    raw = resp.read()
+                return json.loads(raw.decode("utf-8"))
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                if attempt < self.config.request.retries:
+                    backoff = float(self.config.request.backoff_sec) * (2**attempt)
+                    time.sleep(backoff)
+        raise RuntimeError(f"http_post_failed {url}: {last_error}")
 
     def _load_checkpoint(self) -> None:
         if not self.checkpoint_file or not self.checkpoint_file.exists():
@@ -398,6 +487,27 @@ class MarketDataCollector:
         if not isinstance(response, dict):
             raise RuntimeError("book_invalid_payload")
         return response
+
+    def _fetch_books(self, token_ids: list[str]) -> dict[str, dict[str, Any]]:
+        unique_ids = list(dict.fromkeys(str(x).strip() for x in token_ids if str(x).strip()))
+        if not unique_ids:
+            return {}
+        payload = [{"token_id": token_id} for token_id in unique_ids]
+        response = self._http_post_json(f"{self.config.endpoints.clob_host}/books", payload=payload)
+        rows: list[dict[str, Any]] = []
+        if isinstance(response, list):
+            rows = [item for item in response if isinstance(item, dict)]
+        elif isinstance(response, dict):
+            maybe_rows = response.get("books") or response.get("data") or response.get("items")
+            if isinstance(maybe_rows, list):
+                rows = [item for item in maybe_rows if isinstance(item, dict)]
+        out: dict[str, dict[str, Any]] = {}
+        for item in rows:
+            asset_id = str(item.get("asset_id") or item.get("token_id") or item.get("assetId") or "").strip()
+            if not asset_id:
+                continue
+            out[asset_id] = item
+        return out
 
     def _fetch_midpoint(self, token_id: str) -> float | None:
         response = self._http_get_json(f"{self.config.endpoints.clob_host}/midpoint", params={"token_id": token_id})
