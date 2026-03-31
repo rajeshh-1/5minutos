@@ -1,0 +1,3 @@
+2026-03-26T17:48:18Z cycle_id=1 rows={'prices': 10629, 'trades': 3333, 'orderbook': 12297, 'total': 26259} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154
+2026-03-26T17:48:19Z cycle_id=2 rows={'prices': 0, 'trades': 0, 'orderbook': 0, 'total': 0} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154
+2026-03-26T17:48:21Z cycle_id=3 rows={'prices': 0, 'trades': 0, 'orderbook': 0, 'total': 0} leg1_opened=2 leg2_hedged=0 unwind_count=2 pnl_total=-0.1153846154

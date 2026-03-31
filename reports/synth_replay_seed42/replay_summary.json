@@ -1,0 +1,46 @@
+{
+  "events_processed": 7200,
+  "trades_attempted": 3813,
+  "leg1_opened": 2388,
+  "leg2_hedged": 0,
+  "hedge_success_rate": 0.0,
+  "unwind_count": 2388,
+  "pnl_total": -44.0480083093,
+  "pnl_per_trade": -0.0184455646,
+  "final_state_counts": {
+    "CLOSED": 2388
+  },
+  "top_reason_codes": [
+    [
+      "unwind_on_timeout",
+      2988
+    ],
+    [
+      "leg1_opened",
+      2388
+    ],
+    [
+      "below_target_profit",
+      1893
+    ],
+    [
+      "unwind_on_loss_limit",
+      1788
+    ],
+    [
+      "leg2_not_found_timeout",
+      1494
+    ],
+    [
+      "entry_cutoff_blocked",
+      1425
+    ]
+  ],
+  "execution_realism_enabled": true,
+  "execution_realism_model": "pessimistic",
+  "partial_fill_rate": 0.2639503986,
+  "cancel_rate": 0.105107765,
+  "hedge_fail_rate_simulated": 0.1074697372,
+  "avg_slippage_bps": 14.7345787711,
+  "p95_latency_ms": 885.0
+}

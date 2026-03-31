@@ -1,0 +1,34 @@
+{
+  "events_processed": 8,
+  "trades_attempted": 4,
+  "leg1_opened": 4,
+  "leg2_hedged": 0,
+  "hedge_success_rate": 0.0,
+  "unwind_count": 4,
+  "pnl_total": 0.0,
+  "pnl_per_trade": 0.0,
+  "final_state_counts": {
+    "CLOSED": 4
+  },
+  "top_reason_codes": [
+    [
+      "unwind_on_timeout",
+      8
+    ],
+    [
+      "leg1_opened",
+      4
+    ],
+    [
+      "leg2_not_found_timeout",
+      4
+    ]
+  ],
+  "execution_realism_enabled": false,
+  "execution_realism_model": "disabled",
+  "partial_fill_rate": 0.0,
+  "cancel_rate": 0.0,
+  "hedge_fail_rate_simulated": 0.0,
+  "avg_slippage_bps": 0.0,
+  "p95_latency_ms": 0.0
+}

@@ -1,0 +1,18 @@
+{
+  "market_scope": "SOL5M",
+  "price_min": 0.05,
+  "price_max": 0.95,
+  "max_sum_ask": 0.988,
+  "entry_cutoff_sec": 45,
+  "max_spread": 0.03,
+  "min_depth_buffer_mult": 1.0,
+  "max_unwind_loss_bps": 120,
+  "stake_usd_per_leg": 1.0,
+  "max_trades_per_market": 1,
+  "leg2_timeout_ms": 2000,
+  "max_daily_loss_usd": 3.0,
+  "poll_interval_sec": 0.1,
+  "start_from_end": false,
+  "raw_dir": "reports/tmp_raw",
+  "report_file": "reports/live_mvp_trades_simple_validation.csv"
+}

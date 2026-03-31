@@ -1,0 +1,53 @@
+{
+  "engine_status": "stopped",
+  "cycle_id": 61,
+  "last_cycle_utc": "2026-03-25T23:53:23Z",
+  "rows_read_cycle": {
+    "prices": 0,
+    "trades": 0,
+    "orderbook": 0,
+    "total": 0
+  },
+  "active_markets": 1,
+  "closed_trades": 11,
+  "final_state_counts": {
+    "CLOSED": 11
+  },
+  "metrics": {
+    "trades_attempted": 12,
+    "leg1_opened": 12,
+    "leg2_hedged": 0,
+    "hedge_success_rate": 0.0,
+    "unwind_count": 11,
+    "pnl_total": -0.0470481291,
+    "pnl_per_trade": -0.0042771026,
+    "max_drawdown_pct": 4.70481291,
+    "p95_loss": 0.0099009901,
+    "p99_loss": 0.0099009901,
+    "hedge_failed_rate": 1.0,
+    "timeout_rate": 0.0833333333,
+    "below_target_profit_rate": 0.0833333333,
+    "top_reason_codes": [
+      [
+        "unwind_on_timeout",
+        14
+      ],
+      [
+        "leg1_opened",
+        12
+      ],
+      [
+        "below_target_profit",
+        11
+      ],
+      [
+        "unwind_on_loss_limit",
+        8
+      ],
+      [
+        "leg2_not_found_timeout",
+        7
+      ]
+    ]
+  }
+}

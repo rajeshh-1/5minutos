@@ -1,0 +1,19 @@
+{
+  "market_key": "SOL5M_2026-03-26T14:05:00Z",
+  "condition_id": "0xe197ab911f4b81cd9005f827efc508f7acb5f75bd390474004730f698eb1c2a8",
+  "close_time_utc": "2026-03-26T14:05:00Z",
+  "source": "polymarket",
+  "started_at_utc": "2026-03-26T14:10:14Z",
+  "finished_at_utc": "2026-03-26T14:11:03Z",
+  "pages_fetched": 0,
+  "rows_raw_seen": 0,
+  "rows_written": 0,
+  "deduped_rows": 0,
+  "errors_count": 1,
+  "warnings": [
+    "backfill_fetch_error:http_get_failed https://data-api.polymarket.com/trades?market=0xe197ab911f4b81cd9005f827efc508f7acb5f75bd390474004730f698eb1c2a8&limit=1000&offset=0: <urlopen error _ssl.c:1011: The handshake operation timed out>"
+  ],
+  "page_size": 1000,
+  "max_pages": 0,
+  "output_file": "data\\raw\\sol5m\\backfill\\trades_0xe197ab911f4b81cd9005f827efc508f7acb5f75bd390474004730f698eb1c2a8.jsonl"
+}

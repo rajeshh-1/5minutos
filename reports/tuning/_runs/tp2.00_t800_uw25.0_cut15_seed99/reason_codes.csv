@@ -1,0 +1,4 @@
+reason_code,count,pct
+unwind_on_timeout,8,50.0
+leg1_opened,4,25.0
+leg2_not_found_timeout,4,25.0

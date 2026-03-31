@@ -1,0 +1,6 @@
+reason_code,count,pct
+unwind_on_timeout,4,28.571429
+leg1_opened,3,21.428571
+below_target_profit,3,21.428571
+leg2_not_found_timeout,2,14.285714
+unwind_on_loss_limit,2,14.285714

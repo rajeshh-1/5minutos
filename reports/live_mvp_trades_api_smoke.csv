@@ -1,0 +1,11 @@
+ts_utc,market_key,action,status,reason_code,leg1_side,yes_ask,no_ask,sum_ask,seconds_to_close,leg1_price,leg2_price,unwind_price,order_id_leg1,order_id_leg2,fill_status_leg1,fill_status_leg2,hedge_latency_ms,unwind_triggered,pnl_delta,pnl_total,note
+2026-03-26T20:45:27Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.56,0.45,1.01,273,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000
+2026-03-26T20:45:28Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.56,0.46,1.02,272,,,,,,,,,,0.0,0.0,sum_ask=1.020000 > max_sum_ask=0.988000
+2026-03-26T20:45:30Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.55,0.46,1.01,270,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000
+2026-03-26T20:45:32Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.55,0.47,1.02,268,,,,,,,,,,0.0,0.0,sum_ask=1.020000 > max_sum_ask=0.988000
+2026-03-26T20:45:33Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.54,0.47,1.01,267,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000
+2026-03-26T20:45:35Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.54,0.47,1.01,265,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000
+2026-03-26T20:45:37Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.53,0.48,1.01,263,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000
+2026-03-26T20:45:38Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.54,0.47,1.01,262,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000
+2026-03-26T20:45:40Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.54,0.47,1.01,260,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000
+2026-03-26T20:45:42Z,SOL5M_2026-03-26T20:50:00Z,skip_entry,blocked,blocked_sum_ask,,0.55,0.46,1.01,258,,,,,,,,,,0.0,0.0,sum_ask=1.010000 > max_sum_ask=0.988000

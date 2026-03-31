@@ -1,0 +1,2882 @@
+[
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t800_uw35.0_cut15",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 800,
+    "max_unwind_loss_bps": 35.0,
+    "entry_cutoff_sec": 15,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": 0.0,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 0.0,
+    "p99_loss_mean": 0.0,
+    "robustness_score": -0.15,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade 0.000000 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t800_uw25.0_cut15",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 800,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 15,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": 0.0,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 0.0,
+    "p99_loss_mean": 0.0,
+    "robustness_score": -0.15,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade 0.000000 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t800_uw15.0_cut15",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 800,
+    "max_unwind_loss_bps": 15.0,
+    "entry_cutoff_sec": 15,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": 0.0,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 0.0,
+    "p99_loss_mean": 0.0,
+    "robustness_score": -0.15,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade 0.000000 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": 0.0,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 0.0,
+        "p99_loss": 0.0
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.00_t1000_uw25.0_cut30",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.00_t1200_uw40.0_cut45",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.00_t1400_uw50.0_cut60",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.00_t1600_uw60.0_cut75",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.50_t1000_uw25.0_cut30",
+    "target_profit_pct": 2.5,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.50_t1200_uw40.0_cut45",
+    "target_profit_pct": 2.5,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.50_t1400_uw50.0_cut60",
+    "target_profit_pct": 2.5,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp2.50_t1600_uw60.0_cut75",
+    "target_profit_pct": 2.5,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.00_t1000_uw25.0_cut30",
+    "target_profit_pct": 3.0,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.00_t1200_uw40.0_cut45",
+    "target_profit_pct": 3.0,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.00_t1400_uw50.0_cut60",
+    "target_profit_pct": 3.0,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.00_t1600_uw60.0_cut75",
+    "target_profit_pct": 3.0,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.50_t1000_uw25.0_cut30",
+    "target_profit_pct": 3.5,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.50_t1200_uw40.0_cut45",
+    "target_profit_pct": 3.5,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.50_t1400_uw50.0_cut60",
+    "target_profit_pct": 3.5,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp3.50_t1600_uw60.0_cut75",
+    "target_profit_pct": 3.5,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp4.00_t1000_uw25.0_cut30",
+    "target_profit_pct": 4.0,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp4.00_t1200_uw40.0_cut45",
+    "target_profit_pct": 4.0,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp4.00_t1400_uw50.0_cut60",
+    "target_profit_pct": 4.0,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "coarse",
+    "config_id": "tp4.00_t1600_uw60.0_cut75",
+    "target_profit_pct": 4.0,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1000_uw15.0_cut15",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 15.0,
+    "entry_cutoff_sec": 15,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1000_uw35.0_cut45",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 35.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1200_uw35.0_cut30",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 35.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1000_uw25.0_cut45",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1200_uw25.0_cut30",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 25.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1000_uw15.0_cut45",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 15.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1200_uw15.0_cut30",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 15.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1000_uw30.0_cut30",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 30.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1000_uw50.0_cut60",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1200_uw50.0_cut45",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1400_uw50.0_cut30",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1000_uw40.0_cut60",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1200_uw40.0_cut45",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1400_uw40.0_cut30",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1000_uw30.0_cut60",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1000,
+    "max_unwind_loss_bps": 30.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1200_uw30.0_cut45",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 30.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1400_uw30.0_cut30",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 30.0,
+    "entry_cutoff_sec": 30,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1200_uw40.0_cut45",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1200_uw60.0_cut75",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1400_uw60.0_cut60",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1600_uw60.0_cut45",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1200_uw50.0_cut75",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1400_uw50.0_cut60",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1600_uw50.0_cut45",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1200_uw40.0_cut75",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1200,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1400_uw40.0_cut60",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1600_uw40.0_cut45",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 40.0,
+    "entry_cutoff_sec": 45,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1400_uw50.0_cut60",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1400_uw70.0_cut90",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 70.0,
+    "entry_cutoff_sec": 90,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1600_uw70.0_cut75",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 70.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp1.75_t1800_uw70.0_cut60",
+    "target_profit_pct": 1.75,
+    "leg2_timeout_ms": 1800,
+    "max_unwind_loss_bps": 70.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1400_uw60.0_cut90",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 90,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1600_uw60.0_cut75",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.00_t1800_uw60.0_cut60",
+    "target_profit_pct": 2.0,
+    "leg2_timeout_ms": 1800,
+    "max_unwind_loss_bps": 60.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1400_uw50.0_cut90",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1400,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 90,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1600_uw50.0_cut75",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1600,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 75,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  },
+  {
+    "phase": "refine",
+    "config_id": "tp2.25_t1800_uw50.0_cut60",
+    "target_profit_pct": 2.25,
+    "leg2_timeout_ms": 1800,
+    "max_unwind_loss_bps": 50.0,
+    "entry_cutoff_sec": 60,
+    "seeds_count": 3,
+    "pnl_per_trade_mean": -0.0157407407,
+    "pnl_per_trade_std": 0.0,
+    "hedge_success_rate_mean": 0.0,
+    "hedge_success_rate_std": 0.0,
+    "hedge_failed_rate_mean": 1.0,
+    "max_drawdown_pct_mean": 4.72222222,
+    "p99_loss_mean": 0.0249444444,
+    "robustness_score": -0.1627259259,
+    "go_no_go": "NO_GO",
+    "blockers": [
+      "hedge_failed_rate 1.000000 > 0.020000",
+      "pnl_per_trade -0.015741 <= 0"
+    ],
+    "seed_metrics": [
+      {
+        "seed": 42,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 99,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      },
+      {
+        "seed": 123,
+        "pnl_per_trade": -0.0157407407,
+        "hedge_success_rate": 0.0,
+        "hedge_failed_rate": 1.0,
+        "max_drawdown_pct": 4.72222222,
+        "p99_loss": 0.0249444444
+      }
+    ]
+  }
+]

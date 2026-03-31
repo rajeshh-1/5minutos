@@ -1,0 +1,15 @@
+{
+  "market_key": "SOL5M_2026-03-26T14:05:00Z",
+  "realtime_count": 416,
+  "backfill_count": 0,
+  "overlap_count": 0,
+  "missing_in_realtime": [],
+  "missing_in_realtime_count": 0,
+  "extra_in_realtime_count": 416,
+  "coverage_pct": 0.0,
+  "condition_id": "0xe197ab911f4b81cd9005f827efc508f7acb5f75bd390474004730f698eb1c2a8",
+  "close_time_utc": "2026-03-26T14:05:00Z",
+  "realtime_file": "data\\raw\\sol5m\\trades_2026-03-26.jsonl",
+  "backfill_file": "data\\raw\\sol5m\\backfill\\trades_0xe197ab911f4b81cd9005f827efc508f7acb5f75bd390474004730f698eb1c2a8.jsonl",
+  "generated_at_utc": "2026-03-26T14:12:10Z"
+}

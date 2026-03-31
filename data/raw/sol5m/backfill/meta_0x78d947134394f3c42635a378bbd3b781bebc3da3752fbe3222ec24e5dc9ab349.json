@@ -1,0 +1,17 @@
+{
+  "market_key": "SOL5M_2026-03-26T04:25:00Z",
+  "condition_id": "0x78d947134394f3c42635a378bbd3b781bebc3da3752fbe3222ec24e5dc9ab349",
+  "close_time_utc": "2026-03-26T04:25:00Z",
+  "source": "polymarket",
+  "started_at_utc": "2026-03-26T04:39:49Z",
+  "finished_at_utc": "2026-03-26T04:39:49Z",
+  "pages_fetched": 2,
+  "rows_raw_seen": 227,
+  "rows_written": 227,
+  "deduped_rows": 0,
+  "errors_count": 0,
+  "warnings": [],
+  "page_size": 1000,
+  "max_pages": 0,
+  "output_file": "data\\raw\\sol5m\\backfill\\trades_0x78d947134394f3c42635a378bbd3b781bebc3da3752fbe3222ec24e5dc9ab349.jsonl"
+}
